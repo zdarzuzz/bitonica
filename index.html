@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Битоника — синтезатор города и природы</title>
+  <meta name="description" content="Веб-синтезатор «Битоника»: два мелодических голоса, звуки города и природы, клубный ритм.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-time="evening">
+  <!-- Атмосферный фон: три слоя для утра, дня и вечера + зерно -->
+  <div class="backdrop" aria-hidden="true">
+    <div class="sky sky--morning"></div>
+    <div class="sky sky--day"></div>
+    <div class="sky sky--evening"></div>
+    <div class="grain"></div>
+  </div>
+
+  <div class="page">
+    <!-- ===== Верхняя панель ===== -->
+    <header class="topbar">
+      <h1 class="logo">
+        <img class="logo__img" src="assets/images/logo.png" alt="Битоника" width="436" height="99">
+      </h1>
+
+      <div class="actions">
+        <div class="session">
+          <button class="round-btn" id="playBtn" type="button" aria-label="Старт" title="Старт: запустить звук и запись">
+            <img class="icon icon-img icon--play" src="assets/icons/play.png" alt="" aria-hidden="true" draggable="false">
+            <svg class="icon icon--pause"><use href="assets/icons/icons.svg#i-pause"/></svg>
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
+          <div class="timeline" title="Время записанной сессии (предел — 10 минут)">
+            <span class="timeline__time" id="timeText" aria-live="off">00:00</span>
+            <span class="timeline__track" aria-hidden="true"><span class="timeline__fill" id="timeFill"></span></span>
+          </div>
+        </div>
+        <div class="actions__pair">
+          <button class="round-btn" id="downloadBtn" type="button" disabled
+                  aria-label="Скачать запись (WAV)" title="Скачать записанный звук сессии в WAV">
+            <img class="icon icon-img" src="assets/icons/download.png" alt="" aria-hidden="true" draggable="false">
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
+          <button class="round-btn" id="shareBtn" type="button"
+                  aria-label="Поделиться настройками" title="Скопировать ссылку с текущими настройками">
+            <img class="icon icon-img" src="assets/icons/share.png" alt="" aria-hidden="true" draggable="false">
+          </button>
+        </div>
+        <button class="round-btn" id="resetBtn" type="button"
+                aria-label="Сбросить всё" title="Сброс: остановить звук, удалить запись, вернуть начальные настройки">
+          <img class="icon icon-img" src="assets/icons/reset.png" alt="" aria-hidden="true" draggable="false">
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== Голоса и визуализация ===== -->
+    <main class="board">
+      <section class="panel synth" id="voice-city" data-voice="city" aria-labelledby="city-title">
+        <div class="synth__side">
+          <img class="synth__emblem" src="assets/icons/building.png" alt="" aria-hidden="true" draggable="false">
+          <h2 class="synth__title" id="city-title">синт 1 <span class="visually-hidden">— Город</span></h2>
+          <div class="slot slot--volume" data-slot="volume"></div>
+        </div>
+        <div class="notes" data-slot="notes" role="group" aria-label="Ноты города"></div>
+        <div class="waves" data-slot="waves" role="radiogroup" aria-label="Форма волны города"></div>
+        <div class="pairs" data-slot="pairs" role="group" aria-label="Звуки города"></div>
+        <p class="panel__caption">сингл 1-5</p>
+      </section>
+
+      <div class="center">
+        <div class="dots"><canvas id="dots" aria-label="Уровень звука" role="img"></canvas></div>
+        <div class="segmented segmented--time" id="timeOfDay" role="radiogroup" aria-label="Время суток"></div>
+      </div>
+
+      <section class="panel synth" id="voice-nature" data-voice="nature" aria-labelledby="nature-title">
+        <div class="synth__side">
+          <img class="synth__emblem" src="assets/icons/tulip.png" alt="" aria-hidden="true" draggable="false">
+          <h2 class="synth__title" id="nature-title">синт 2 <span class="visually-hidden">— Природа</span></h2>
+          <div class="slot slot--volume" data-slot="volume"></div>
+        </div>
+        <div class="notes" data-slot="notes" role="group" aria-label="Ноты природы"></div>
+        <div class="waves" data-slot="waves" role="radiogroup" aria-label="Форма волны природы"></div>
+        <div class="pairs" data-slot="pairs" role="group" aria-label="Звуки природы"></div>
+        <p class="panel__caption">сингл 6-10</p>
+      </section>
+    </main>
+
+    <!-- ===== Барабаны и эффекты ===== -->
+    <div class="bottom">
+      <section class="panel drums" aria-label="Барабаны">
+        <div class="drums__main">
+          <div class="slot" id="densitySlot"></div>
+          <h2 class="drums__title">барабан</h2>
+          <div class="segmented segmented--presets" id="presets" role="radiogroup" aria-label="Ритмический пресет"></div>
+        </div>
+        <div class="drums__faders">
+          <div class="fader-col">
+            <div class="slot" id="drumVolumeSlot"></div>
+            <svg class="fader-col__icon" aria-hidden="true"><use href="assets/icons/icons.svg#i-volume"/></svg>
+          </div>
+          <div class="fader-col">
+            <div class="slot" id="tempoSlot"></div>
+            <svg class="fader-col__icon" aria-hidden="true"><use href="assets/icons/icons.svg#i-metronome"/></svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel effects" aria-label="Эффекты на всю композицию">
+        <div class="effects__main">
+          <div class="effects__knobs" id="fxKnobs"></div>
+        </div>
+        <div class="fader-col fader-col--master">
+          <div class="slot" id="masterSlot"></div>
+          <svg class="fader-col__icon" aria-hidden="true"><use href="assets/icons/icons.svg#i-volume"/></svg>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Сообщения: «Ссылка скопирована», «Подготовка…» и т. п. -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <!-- Значение регулируемого параметра (показывается рядом с ползунком/крутилкой) -->
+  <div class="readout" id="readout" aria-hidden="true"></div>
+
+  <!-- Окно со ссылкой, если буфер обмена недоступен -->
+  <dialog class="share-dialog" id="shareDialog" aria-labelledby="shareDialogTitle">
+    <form method="dialog">
+      <h2 id="shareDialogTitle">Ссылка с настройками</h2>
+      <p>Скопируйте ссылку вручную:</p>
+      <input type="text" id="shareInput" readonly aria-label="Ссылка с настройками">
+      <button class="text-btn" type="submit">Готово</button>
+    </form>
+  </dialog>
+
+  <!-- Tone.js — конкретная версия, хранится в проекте (работает и без интернета) -->
+  <script src="js/vendor/tone-15.1.22.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

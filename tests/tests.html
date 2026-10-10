@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Битоника — проверки</title>
+  <style>
+    body { font: 15px/1.6 system-ui, sans-serif; padding: 24px; background: #111; color: #ddd; }
+    .ok { color: #bbfc9f; } .fail { color: #ff8a8a; }
+  </style>
+</head>
+<body>
+  <h1>Проверки настроек и парных ползунков</h1>
+  <ul id="list"></ul>
+  <p id="total"></p>
+  <p><a href="audio-check.html" style="color:#bbfc9f">Проверка звука →</a></p>
+  <script type="module">
+    import { runTests } from './state.test.mjs';
+    const results = runTests();
+    const list = document.getElementById('list');
+    results.forEach((r) => {
+      const li = document.createElement('li');
+      li.className = r.ok ? 'ok' : 'fail';
+      li.textContent = `${r.ok ? '✓' : '✗'} ${r.name}`;
+      list.append(li);
+    });
+    const failed = results.filter((r) => !r.ok).length;
+    document.getElementById('total').textContent = `${results.length - failed} из ${results.length} проверок прошли`;
+    window.testResults = results;
+  </script>
+</body>
+</html>
