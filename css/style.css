@@ -1,0 +1,853 @@
+/* =========================================================
+   Битоника — стили
+   Все размеры макета записаны в «единицах макета» --u:
+   1 единица = 1 пиксель исходного макета (ширина ~1430 px).
+   На экранах ноутбуков --u уменьшается так, чтобы интерфейс помещался
+   по высоте, но не меньше читаемого минимума. Это не масштабирование
+   картинкой: элементы по-прежнему раскладываются через Grid и Flexbox.
+   ========================================================= */
+
+@font-face {
+  font-family: 'Inter';
+  font-weight: 300;
+  font-display: swap;
+  src: url('../assets/fonts/inter-cyrillic-300-normal.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Inter';
+  font-weight: 300;
+  font-display: swap;
+  src: url('../assets/fonts/inter-latin-300-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2190-21FF;
+}
+@font-face {
+  font-family: 'Inter';
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/inter-cyrillic-400-normal.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Inter';
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/inter-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F, U+2190-21FF;
+}
+
+:root {
+  /* Цвета */
+  --lime: #bbfc9f;
+  --lime-08: rgba(187, 252, 159, 0.08);
+  --lime-20: rgba(187, 252, 159, 0.2);
+  --lime-30: rgba(187, 252, 159, 0.3);
+  --lime-45: rgba(187, 252, 159, 0.45);
+  --navy: #000d5f;
+  --ink: #0d1a2b;
+  --panel-fill: rgba(255, 255, 255, 0.13);
+  --panel-fill-dark: rgba(120, 120, 135, 0.22);
+  --off-fill: rgba(196, 214, 214, 0.42);
+  --off-text: rgba(225, 235, 230, 0.45);
+  --dot-off: rgba(255, 255, 255, 0.2);
+
+  /* Единица макета: подстраивается под ширину и высоту окна */
+  --u: clamp(0.54px, min(100vw / 1400, 100vh / 1470), 1.1px);
+
+  /* Повторяющиеся размеры */
+  --border: calc(2.5 * var(--u));
+  --radius-panel: calc(34 * var(--u));
+  --round-btn: calc(70 * var(--u));
+  --icon: calc(28 * var(--u));
+  --text: max(12px, calc(20 * var(--u)));
+  --text-small: max(11px, calc(16 * var(--u)));
+  --gap-panels: calc(24 * var(--u));
+
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-weight: 300;
+  color: var(--lime);
+  background: #0b1218;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; min-height: 100%; }
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button { font: inherit; color: inherit; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: calc(3 * var(--u)) solid #ffffff;
+  outline-offset: calc(3 * var(--u));
+}
+
+/* ---------- Атмосферный фон ----------
+   Временный CSS-фон: размытые цветовые пятна + зерно.
+   Три слоя (утро, день, вечер) плавно сменяют друг друга. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.sky {
+  position: absolute;
+  inset: -10%;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  filter: blur(30px);
+}
+
+.sky--evening {
+  background:
+    radial-gradient(38% 30% at 52% 12%, #d49380 0%, transparent 70%),
+    radial-gradient(30% 34% at 47% 45%, #b8757f 0%, transparent 70%),
+    radial-gradient(26% 30% at 18% 32%, #6a7ec0 0%, transparent 70%),
+    radial-gradient(28% 26% at 82% 30%, #b98a80 0%, transparent 72%),
+    radial-gradient(22% 22% at 96% 6%, #6f8f99 0%, transparent 70%),
+    radial-gradient(30% 30% at 90% 88%, #56668a 0%, transparent 72%),
+    radial-gradient(34% 30% at 50% 70%, #6b5868 0%, transparent 72%),
+    radial-gradient(30% 30% at 22% 70%, #3e4f7a 0%, transparent 70%),
+    #0b1218;
+}
+
+.sky--morning {
+  background:
+    radial-gradient(40% 32% at 50% 10%, #f4c59a 0%, transparent 70%),
+    radial-gradient(30% 34% at 46% 46%, #e3a5a3 0%, transparent 70%),
+    radial-gradient(28% 30% at 16% 30%, #9db4e0 0%, transparent 70%),
+    radial-gradient(28% 26% at 84% 26%, #f2b796 0%, transparent 72%),
+    radial-gradient(30% 30% at 88% 86%, #8f8fc0 0%, transparent 72%),
+    radial-gradient(34% 30% at 50% 74%, #a07f9a 0%, transparent 72%),
+    radial-gradient(30% 30% at 18% 76%, #5d6b9e 0%, transparent 70%),
+    #2b2f4a;
+}
+
+.sky--day {
+  background:
+    radial-gradient(40% 32% at 52% 10%, #9fd3d8 0%, transparent 70%),
+    radial-gradient(30% 34% at 46% 46%, #7fb3c8 0%, transparent 70%),
+    radial-gradient(28% 30% at 16% 30%, #4f86c9 0%, transparent 70%),
+    radial-gradient(28% 26% at 84% 26%, #c8d39b 0%, transparent 72%),
+    radial-gradient(30% 30% at 88% 86%, #4c78a0 0%, transparent 72%),
+    radial-gradient(34% 30% at 50% 74%, #5f8a96 0%, transparent 72%),
+    radial-gradient(30% 30% at 18% 76%, #2f5a86 0%, transparent 70%),
+    #1b2f45;
+}
+
+body[data-time='morning'] .sky--morning,
+body[data-time='day'] .sky--day,
+body[data-time='evening'] .sky--evening { opacity: 1; }
+
+.grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.28;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- Каркас страницы ---------- */
+.page {
+  width: calc(1330 * var(--u));
+  margin: 0 auto;
+  padding: calc(30 * var(--u)) 0 calc(30 * var(--u));
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: calc(100 * var(--u));
+  margin-bottom: calc(36 * var(--u));
+  padding-left: calc(10 * var(--u));
+}
+
+.logo { margin: 0; line-height: 0; }
+
+.logo__art {
+  height: calc(95 * var(--u));
+  width: auto;
+  aspect-ratio: 466 / 100;
+  fill: currentColor;
+  color: var(--lime);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: calc(80 * var(--u));
+}
+
+.session,
+.actions__pair {
+  display: flex;
+  align-items: center;
+  gap: calc(16 * var(--u));
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: calc(6 * var(--u));
+  min-width: calc(66 * var(--u));
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text);
+}
+
+.timeline__track {
+  position: relative;
+  display: block;
+  height: calc(3 * var(--u));
+  min-height: 2px;
+  border-radius: 2px;
+  background: var(--lime-30);
+  overflow: hidden;
+}
+
+.timeline__fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--lime);
+}
+
+/* ---------- Круглые кнопки ---------- */
+.round-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--round-btn);
+  height: var(--round-btn);
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border: var(--border) solid var(--lime);
+  border-radius: 50%;
+  background: var(--lime-20);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, opacity 0.15s;
+}
+
+.round-btn:hover { background: var(--lime-30); }
+.round-btn:active { transform: scale(0.96); }
+.round-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.icon {
+  width: var(--icon);
+  height: var(--icon);
+  min-width: 16px;
+  min-height: 16px;
+}
+
+.round-btn .icon--pause,
+.round-btn .spinner { display: none; }
+.round-btn.is-playing .icon--play { display: none; }
+.round-btn.is-playing .icon--pause { display: block; }
+.round-btn.is-busy .icon { display: none; }
+.round-btn.is-busy .spinner { display: block; }
+
+.spinner {
+  width: calc(26 * var(--u));
+  height: calc(26 * var(--u));
+  min-width: 14px;
+  min-height: 14px;
+  border: 2px solid var(--lime-45);
+  border-top-color: var(--lime);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Панели ---------- */
+.panel {
+  position: relative;
+  border: var(--border) solid var(--lime);
+  border-radius: var(--radius-panel);
+  background: var(--panel-fill);
+  -webkit-backdrop-filter: blur(24px) saturate(1.1);
+  backdrop-filter: blur(24px) saturate(1.1);
+}
+
+.panel__caption {
+  margin: 0;
+  font-size: var(--text);
+}
+
+/* ---------- Средняя часть: два голоса и визуализация ---------- */
+.board {
+  display: grid;
+  grid-template-columns: calc(545 * var(--u)) 1fr calc(545 * var(--u));
+  align-items: stretch;
+}
+
+.synth {
+  display: grid;
+  grid-template-columns: calc(66 * var(--u)) 1fr calc(70 * var(--u));
+  grid-template-areas:
+    'side notes waves'
+    'pairs pairs pairs'
+    'caption caption caption';
+  column-gap: calc(32 * var(--u));
+  padding: calc(32 * var(--u)) calc(38 * var(--u)) calc(26 * var(--u)) calc(30 * var(--u));
+}
+
+.synth__side {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.synth__emblem {
+  width: calc(62 * var(--u));
+  height: calc(62 * var(--u));
+  color: var(--lime);
+}
+
+.synth__title {
+  margin: calc(4 * var(--u)) 0 calc(18 * var(--u));
+  font-size: var(--text);
+  font-weight: 300;
+  white-space: nowrap;
+}
+
+.synth .notes { grid-area: notes; }
+.synth .waves { grid-area: waves; }
+.synth .pairs { grid-area: pairs; }
+.synth .panel__caption { grid-area: caption; margin-top: calc(14 * var(--u)); }
+
+/* Строка ноты: квадрат-кнопка, буква, ползунок длительности */
+.notes {
+  display: grid;
+  grid-template-rows: repeat(8, calc(46 * var(--u)));
+}
+
+.note {
+  display: grid;
+  grid-template-columns: calc(35 * var(--u)) calc(30 * var(--u)) 1fr;
+  align-items: center;
+  column-gap: calc(10 * var(--u));
+}
+
+.note__toggle {
+  width: calc(35 * var(--u));
+  height: calc(35 * var(--u));
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: calc(3 * var(--u));
+  background: var(--off-fill);
+  cursor: pointer;
+  transition: background 0.12s, box-shadow 0.12s;
+}
+
+.note__label {
+  font-size: calc(22 * var(--u));
+  font-size: max(13px, calc(22 * var(--u)));
+  color: var(--off-text);
+  white-space: nowrap;
+}
+
+.note.is-on .note__toggle { background: var(--lime); border-color: var(--lime); }
+.note.is-on .note__label { color: var(--lime); }
+.note:not(.is-on) .fader { opacity: 0.35; }
+
+/* Текущая проигрываемая позиция — тонкое кольцо вокруг квадрата */
+.note.is-current .note__toggle {
+  box-shadow: 0 0 0 calc(3 * var(--u)) var(--navy), 0 0 0 calc(5.5 * var(--u)) var(--lime);
+}
+.note.is-current:not(.is-on) .note__toggle {
+  box-shadow: 0 0 0 calc(3 * var(--u)) transparent, 0 0 0 calc(5.5 * var(--u)) var(--off-text);
+}
+
+/* Кнопки формы волны */
+.waves {
+  display: flex;
+  flex-direction: column;
+  gap: calc(35 * var(--u));
+  padding-top: calc(1 * var(--u));
+}
+
+.wave-btn .icon { width: calc(36 * var(--u)); height: calc(36 * var(--u)); }
+.wave-btn[aria-checked='true'] { background: var(--lime); color: var(--navy); }
+
+/* Парные ползунки среды */
+.pairs {
+  display: flex;
+  justify-content: space-between;
+  margin-top: calc(30 * var(--u));
+}
+
+.pair {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(10 * var(--u));
+}
+
+
+.pair__icon {
+  width: calc(24 * var(--u));
+  height: calc(24 * var(--u));
+  min-width: 14px;
+  min-height: 14px;
+  opacity: 0.75;
+  transition: opacity 0.15s;
+}
+.pair__icon.is-active { opacity: 1; }
+
+/* ---------- Центр: точки и время суток ---------- */
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(26 * var(--u));
+}
+
+.dots {
+  position: relative;
+  flex: 1;
+  width: calc(132 * var(--u));
+  min-height: 0;
+}
+
+/* canvas занимает обёртку целиком и не влияет на её размер */
+.dots canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Сегментированный переключатель (время суток, пресеты, «Город/Природа») */
+.segmented {
+  display: flex;
+  align-items: center;
+  gap: calc(4 * var(--u));
+  padding: calc(3 * var(--u));
+  border: var(--border) solid var(--lime);
+  border-radius: 999px;
+}
+
+.segmented__btn {
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.segmented__btn:hover { background: var(--lime-20); }
+.segmented__btn[aria-checked='true'] { background: var(--lime); color: var(--ink); }
+
+.segmented--time .segmented__btn {
+  width: calc(60 * var(--u));
+  height: calc(60 * var(--u));
+  min-width: 34px;
+  min-height: 34px;
+}
+.segmented--time .icon { width: calc(30 * var(--u)); height: calc(30 * var(--u)); }
+
+.segmented--presets .segmented__btn {
+  width: calc(50 * var(--u));
+  height: calc(50 * var(--u));
+  min-width: 30px;
+  min-height: 30px;
+  font-size: max(14px, calc(24 * var(--u)));
+  font-weight: 300;
+}
+.segmented--presets { gap: calc(4 * var(--u)); padding: calc(3 * var(--u)) calc(5 * var(--u)); }
+
+.segmented--small .segmented__btn {
+  padding: calc(5 * var(--u)) calc(16 * var(--u));
+  min-height: 26px;
+  font-size: var(--text-small);
+}
+
+/* ---------- Нижние панели ---------- */
+.bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap-panels);
+  margin-top: calc(28 * var(--u));
+}
+
+.bottom .panel { background: var(--panel-fill-dark); }
+
+.drums {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  padding: calc(20 * var(--u)) calc(44 * var(--u)) calc(24 * var(--u)) calc(30 * var(--u));
+  min-height: calc(400 * var(--u));
+}
+
+.drums__main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.drums__title {
+  margin: calc(-6 * var(--u)) 0 calc(18 * var(--u));
+  font-size: var(--text);
+  font-weight: 300;
+}
+
+.drums__faders {
+  display: flex;
+  gap: calc(36 * var(--u));
+}
+
+.fader-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(14 * var(--u));
+}
+
+.fader-col__icon {
+  width: calc(26 * var(--u));
+  height: calc(26 * var(--u));
+  min-width: 15px;
+  min-height: 15px;
+}
+
+.effects {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  padding: calc(18 * var(--u)) calc(50 * var(--u)) calc(24 * var(--u)) calc(44 * var(--u));
+}
+
+.effects__main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(12 * var(--u));
+  flex: 1;
+}
+
+.effects__knobs {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  justify-content: space-between;
+  width: 100%;
+  max-width: calc(460 * var(--u));
+  row-gap: calc(6 * var(--u));
+}
+
+.fader-col--master { padding-top: calc(16 * var(--u)); }
+
+/* ---------- Ползунки (обычный <input type="range">) ----------
+   Встроенный элемент даёт управление мышью, касанием и клавиатурой.
+   Вертикальные ползунки поворачиваются через writing-mode. */
+.fader {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: none;
+  --thumb-w: calc(62 * var(--u));
+  --thumb-h: calc(34 * var(--u));
+}
+
+.fader--vertical {
+  writing-mode: vertical-lr;
+  direction: rtl; /* максимум сверху */
+  width: calc(62 * var(--u));
+  min-width: 34px;
+  /* тонкая линия-направляющая по центру */
+  background: linear-gradient(var(--lime), var(--lime)) center / max(2px, calc(2.5 * var(--u))) 100% no-repeat;
+}
+
+.fader--horizontal {
+  width: 100%;
+  height: calc(34 * var(--u));
+  min-height: 20px;
+  --thumb-w: calc(18 * var(--u));
+  background: linear-gradient(var(--lime), var(--lime)) center / 100% max(1.5px, calc(2.5 * var(--u))) no-repeat;
+}
+
+.fader::-webkit-slider-runnable-track { background: transparent; border: 0; }
+.fader::-moz-range-track { background: transparent; border: 0; }
+
+.fader::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--thumb-w);
+  height: var(--thumb-h);
+  min-width: 12px;
+  min-height: 20px;
+  border: 0;
+  border-radius: calc(3 * var(--u));
+  background: var(--lime);
+}
+.fader::-moz-range-thumb {
+  width: var(--thumb-w);
+  height: var(--thumb-h);
+  border: 0;
+  border-radius: calc(3 * var(--u));
+  background: var(--lime);
+}
+
+/* Вертикальный ползунок: ширина и высота ручки меняются местами по осям */
+.fader--vertical::-webkit-slider-thumb { width: var(--thumb-w); height: var(--thumb-h); min-width: 34px; min-height: 18px; }
+
+/* Парный ползунок среды — «таблетка» с круглой ручкой */
+.pair__track {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+/* метка центра (зона тишины) */
+.pair__track::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(22 * var(--u));
+  height: max(1.5px, calc(2 * var(--u)));
+  background: var(--lime);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.fader--pair {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: calc(62 * var(--u));
+  height: calc(150 * var(--u));
+  min-width: 36px;
+  min-height: 96px;
+  padding: calc(5 * var(--u));
+  border: var(--border) solid var(--lime);
+  border-radius: 999px;
+  /* подсветка от центра до ручки — задаётся из JS через --from/--to */
+  background:
+    linear-gradient(to top, transparent var(--from, 50%), var(--lime-30) var(--from, 50%) var(--to, 50%), transparent var(--to, 50%)),
+    var(--lime-08);
+  --thumb-w: calc(48 * var(--u));
+  --thumb-h: calc(48 * var(--u));
+}
+.fader--pair::-webkit-slider-thumb {
+  width: var(--thumb-w);
+  height: var(--thumb-h);
+  min-width: 26px;
+  min-height: 26px;
+  border-radius: 50%;
+}
+.fader--pair::-moz-range-thumb { border-radius: 50%; }
+
+/* ---------- Крутилки ---------- */
+.knob-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.knob {
+  --ring: calc(150 * var(--u));
+  --cap: calc(110 * var(--u));
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--ring);
+  height: var(--ring);
+  min-width: 84px;
+  min-height: 84px;
+  touch-action: none;
+  cursor: grab;
+  border-radius: 50%;
+}
+.knob:active { cursor: grabbing; }
+
+.knob__ticks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  color: var(--lime);
+  pointer-events: none;
+}
+
+.knob__cap {
+  position: relative;
+  width: var(--cap);
+  height: var(--cap);
+  min-width: 60px;
+  min-height: 60px;
+  border-radius: 50%;
+  background: var(--lime);
+  transform: rotate(var(--angle, 0deg));
+}
+
+.knob__pointer {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: calc(5 * var(--u));
+  min-width: 3px;
+  height: 28%;
+  background: var(--navy);
+  transform: translateX(-50%);
+}
+
+.knob__label {
+  margin-top: calc(-4 * var(--u));
+  font-size: var(--text);
+}
+
+.knob--big {
+  --ring: calc(232 * var(--u));
+  --cap: calc(168 * var(--u));
+  margin: calc(44 * var(--u)) calc(60 * var(--u)) calc(12 * var(--u));
+}
+.knob--big .knob__pointer { height: 24%; width: calc(6 * var(--u)); }
+
+/* ---------- Подсказки и сообщения ---------- */
+.readout {
+  position: fixed;
+  z-index: 20;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--lime);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 400;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -100%);
+  transition: opacity 0.15s;
+}
+.readout.is-visible { opacity: 1; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 30;
+  max-width: calc(100vw - 32px);
+  padding: 10px 18px;
+  border: 2px solid var(--lime);
+  border-radius: 999px;
+  background: rgba(13, 26, 43, 0.88);
+  color: var(--lime);
+  font-size: 15px;
+  font-weight: 400;
+  opacity: 0;
+  transform: translate(-50%, 10px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+}
+.toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+.share-dialog {
+  width: min(560px, calc(100vw - 32px));
+  padding: 20px 22px;
+  border: 2px solid var(--lime);
+  border-radius: 20px;
+  background: #142233;
+  color: var(--lime);
+}
+.share-dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
+.share-dialog h2 { margin: 0 0 6px; font-size: 18px; font-weight: 400; }
+.share-dialog input {
+  width: 100%;
+  margin: 8px 0 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--lime-45);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font: 13px/1.4 ui-monospace, monospace;
+}
+.text-btn {
+  padding: 8px 18px;
+  border: 2px solid var(--lime);
+  border-radius: 999px;
+  background: var(--lime);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* =========================================================
+   Узкие экраны (телефон, узкое окно): одна колонка и вертикальный скролл.
+   Размеры не уменьшаются до нечитаемых — --u привязан к ширине.
+   ========================================================= */
+@media (max-width: 900px) {
+  :root { --u: clamp(0.56px, calc((100vw - 24px) / 600), 1px); }
+
+  .page {
+    width: 100%;
+    padding: 16px 12px 28px;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    height: auto;
+    margin-bottom: 18px;
+    padding-left: 0;
+  }
+
+  .actions { width: 100%; justify-content: space-between; gap: 10px; }
+
+  .board {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .synth { padding-left: calc(30 * var(--u)); padding-right: calc(30 * var(--u)); }
+
+  .center {
+    flex-direction: row;
+    justify-content: center;
+    gap: 16px;
+    height: auto;
+    order: -1; /* визуализация и время суток — сразу под шапкой */
+  }
+
+  .dots {
+    flex: 0 0 auto;
+    width: calc(100% - 200px);
+    max-width: 260px;
+    height: 120px;
+  }
+
+  .bottom { grid-template-columns: 1fr; gap: 16px; margin-top: 16px; }
+
+  .drums, .effects { flex-wrap: wrap; gap: 16px; justify-content: space-around; padding: 18px 16px; min-height: 0; }
+  .drums__faders { height: 240px; }
+  .fader-col--master { height: 260px; }
+}
