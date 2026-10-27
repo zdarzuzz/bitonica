@@ -357,17 +357,26 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
 .synth .pairs { grid-area: pairs; }
 .synth .panel__caption { grid-area: caption; margin-top: calc(14 * var(--u)); }
 
-/* Строка ноты: квадрат-кнопка, буква, ползунок длительности */
+/* Единая плашка ноты: ручка, кнопка, название и длительность */
 .notes {
   display: grid;
-  grid-template-rows: repeat(8, calc(46 * var(--u)));
+  position: relative;
+  min-width: 0;
+  grid-template-rows: repeat(8, minmax(32px, calc(46 * var(--u))));
+  gap: max(3px, calc(4 * var(--u)));
 }
 
 .note {
   display: grid;
-  grid-template-columns: calc(35 * var(--u)) calc(30 * var(--u)) 1fr;
+  position: relative;
+  min-width: 0;
+  grid-template-columns: max(16px, calc(20 * var(--u))) max(20px, calc(27 * var(--u))) max(22px, calc(28 * var(--u))) minmax(0, 1fr);
+  padding: calc(5 * var(--u)) calc(9 * var(--u));
+  border: 1px solid var(--lime-30);
+  border-radius: max(9px, calc(13 * var(--u)));
+  background: var(--lime-08);
   align-items: center;
-  column-gap: calc(10 * var(--u));
+  column-gap: max(3px, calc(6 * var(--u)));
 }
 
 .note__toggle {
@@ -869,4 +878,37 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
   .drums, .effects { flex-wrap: wrap; gap: 16px; justify-content: space-around; padding: 18px 16px; min-height: 0; }
   .drums__faders { height: 240px; }
   .fader-col--master { height: 260px; }
+}
+
+/* Ручка не перехватывает жесты на остальных элементах плашки. */
+.note__handle {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--lime);
+  font-size: max(17px, calc(22 * var(--u)));
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  align-self: stretch;
+}
+.note__handle:active { cursor: grabbing; }
+.note .note__toggle { width: max(20px, calc(27 * var(--u))); height: max(20px, calc(27 * var(--u))); }
+.note .fader { min-width: 0; }
+.note.is-current { border-color: var(--lime); background: var(--lime-20); }
+.note.is-dragging { opacity: 0.35; border-style: dashed; }
+.notes.is-reordering { user-select: none; }
+.notes__insert {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--lime);
+  box-shadow: 0 0 8px var(--lime-45);
+  transform: translateY(-2px);
+  pointer-events: none;
+  z-index: 5;
 }

@@ -190,10 +190,11 @@ function scheduleMelody() {
     const step = stepAt(time, '8n', 8);
     const stepLength = seconds('8n');
     VOICE_IDS.forEach((id) => {
-      const note = state.voices[id].notes[step];
+      const noteIndex = state.voices[id].order[step];
+      const note = state.voices[id].notes[noteIndex];
       if (note.on) {
         // Длительность = доля шага; сам шаг (ритм) не меняется.
-        voices[id].synth.triggerAttackRelease(VOICE_NOTES[id][step], note.len * stepLength, time, 0.9);
+        voices[id].synth.triggerAttackRelease(VOICE_NOTES[id][noteIndex], note.len * stepLength, time, 0.9);
       }
     });
     // Подсветка текущей позиции — синхронно со звуком.

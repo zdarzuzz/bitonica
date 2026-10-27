@@ -37,11 +37,13 @@ export const DEFAULT_STATE = Object.freeze({
       volume: 0.75,
       wave: 'triangle',
       notes: defaultNotes(),
+      order: [0, 1, 2, 3, 4, 5, 6, 7],
     },
     nature: {
       volume: 0.7,
       wave: 'triangle',
       notes: defaultNotes(),
+      order: [0, 1, 2, 3, 4, 5, 6, 7],
     },
   },
   // Общие эффекты на всю композицию (0…1).
@@ -141,6 +143,10 @@ export function sanitizeState(input) {
     const o = out.voices[id];
     o.volume = clampNumber(s.volume, 0, 1, d.volume);
     o.wave = pick(s.wave, WAVES, d.wave);
+    // Старые ссылки без order сохраняют исходный порядок; принимаем только перестановку.
+    o.order = Array.isArray(s.order) && s.order.length === 8 &&
+      new Set(s.order).size === 8 && s.order.every((n) => Number.isInteger(n) && n >= 0 && n < 8)
+      ? [...s.order] : [...d.order];
     o.notes = d.notes.map((dn, i) => {
       const sn = Array.isArray(s.notes) && s.notes[i] ? s.notes[i] : {};
       return {

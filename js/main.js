@@ -11,6 +11,7 @@ import {
 } from './state.js';
 import { DRUM_PRESETS, densityToLevel } from './patterns.js';
 import * as audio from './audio.js';
+import { setupNoteReorder } from './note-reorder.js';
 import { MAX_SECONDS } from './recorder.js';
 import { createFader, createPairToggle, createKnob, createSegmented, icon, maskIcon } from './controls.js';
 
@@ -82,6 +83,13 @@ function buildVoice(id) {
   NOTE_LABELS.forEach((label, i) => {
     const row = document.createElement('div');
     row.className = 'note';
+    row.dataset.note = String(i);
+    const handle = document.createElement('button');
+    handle.type = 'button';
+    handle.className = 'note__handle';
+    handle.textContent = '⠿';
+    handle.setAttribute('aria-label', `${name}: переместить ноту ${label}`);
+    handle.title = 'Перетащите ноту или используйте стрелки вверх / вниз';
     const toggle = document.createElement('button');
     toggle.type = 'button';
     toggle.className = 'note__toggle';
@@ -116,10 +124,24 @@ function buildVoice(id) {
     paint();
     refreshers.push(paint);
 
-    row.append(toggle, text, length.el);
+    row.append(handle, toggle, text, length.el);
     notesBox.append(row);
     noteRows[id].push(row);
   });
+
+  setupNoteReorder(notesBox, {
+    getOrder: () => state.voices[id].order,
+    onChange: (order) => {
+      state.voices[id].order = order;
+      renderOrder();
+    },
+    announce: (label, position) => showToast(`${name}: ${label}, позиция ${position} из 8`),
+  });
+  function renderOrder() {
+    state.voices[id].order.forEach((noteIndex) => notesBox.append(noteRows[id][noteIndex]));
+    highlightStep(currentStep);
+  }
+  refreshers.push(renderOrder);
 
   // Форма волны
   const waves = createSegmented(
@@ -396,9 +418,11 @@ function applyHash() {
    Время, подсветка шага, визуализация
    ========================================================= */
 
+let currentStep = -1;
 function highlightStep(step) {
+  currentStep = step;
   VOICE_IDS.forEach((id) => {
-    noteRows[id].forEach((row, i) => row.classList.toggle('is-current', i === step));
+    noteRows[id].forEach((row, i) => row.classList.toggle('is-current', i === state.voices[id].order[step]));
   });
 }
 

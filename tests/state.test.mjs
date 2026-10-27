@@ -12,6 +12,25 @@ export function runTests() {
   const results = [];
   const check = (name, condition) => results.push({ name, ok: Boolean(condition) });
 
+  /* --- Порядок нот и совместимость ссылок --- */
+  const ordered = createDefaultState();
+  ordered.voices.city.order = [4, 2, 0, 1, 3, 5, 7, 6];
+  ordered.voices.city.notes[4] = { on: true, len: 0.82 };
+  const restored = decodeState(encodeState(ordered)).state;
+  check('ссылка сохраняет порядок и параметры перемещённой ноты',
+    JSON.stringify(restored.voices.city.order) === JSON.stringify(ordered.voices.city.order) &&
+    restored.voices.city.notes[4].on && restored.voices.city.notes[4].len === 0.82);
+  check('порядки двух голосов независимы', restored.voices.nature.order.join() === '0,1,2,3,4,5,6,7');
+  const legacy = createDefaultState();
+  delete legacy.voices.city.order;
+  check('старая ссылка без порядка получает исходную последовательность',
+    decodeState(encodeState(legacy)).state.voices.city.order.join() === '0,1,2,3,4,5,6,7');
+  for (const order of [[0,0,2,3,4,5,6,7], [0,1], [0,1,2,3,4,5,6,9], ['0',1,2,3,4,5,6,7]]) {
+    ordered.voices.city.order = order;
+    check(`некорректный порядок ${JSON.stringify(order)} отклоняется`,
+      sanitizeState(ordered).voices.city.order.join() === '0,1,2,3,4,5,6,7');
+  }
+
   /* --- Синглы: три положения --- */
   check('центр — оба звука выключены', pairToGains(0).top === 0 && pairToGains(0).bottom === 0);
   check('верх — только верхний звук', pairToGains(1).top === 1 && pairToGains(1).bottom === 0);
