@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body data-time="evening">
-  <!-- Атмосферный фон: три слоя для утра, дня и вечера + зерно -->
+
   <div class="backdrop" aria-hidden="true">
     <div class="sky sky--morning"></div>
     <div class="sky sky--day"></div>
@@ -17,7 +17,7 @@
   </div>
 
   <div class="page">
-    <!-- ===== Верхняя панель ===== -->
+
     <header class="topbar">
       <h1 class="logo">
         <img class="logo__img" src="assets/images/logo.png" alt="Битоника" width="436" height="99">
@@ -53,7 +53,6 @@
       </div>
     </header>
 
-    <!-- ===== Голоса и визуализация ===== -->
     <main class="board">
       <section class="panel synth" id="voice-city" data-voice="city" aria-labelledby="city-title">
         <div class="synth__side">
@@ -85,7 +84,6 @@
       </section>
     </main>
 
-    <!-- ===== Барабаны и эффекты ===== -->
     <div class="bottom">
       <section class="panel drums" aria-label="Барабаны">
         <div class="drums__main">
@@ -117,12 +115,10 @@
     </div>
   </div>
 
-  <!-- Сообщения: «Ссылка скопирована», «Подготовка…» и т. п. -->
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <!-- Значение регулируемого параметра (показывается рядом с ползунком/крутилкой) -->
+
   <div class="readout" id="readout" aria-hidden="true"></div>
 
-  <!-- Окно со ссылкой, если буфер обмена недоступен -->
   <dialog class="share-dialog" id="shareDialog" aria-labelledby="shareDialogTitle">
     <form method="dialog">
       <h2 id="shareDialogTitle">Ссылка с настройками</h2>
@@ -132,7 +128,6 @@
     </form>
   </dialog>
 
-  <!-- Tone.js — конкретная версия, хранится в проекте (работает и без интернета) -->
   <script src="js/vendor/tone-15.1.22.js"></script>
   <script type="module" src="js/main.js"></script>
 </body>
