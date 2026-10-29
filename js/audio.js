@@ -1,27 +1,10 @@
-// audio.js — весь звук «Битоники» (Tone.js 15.1.22).
-//
-// Схема (каждый слой подключён РОВНО один раз — к mixBus, обходных путей нет):
-//   голос «Город»   ─┐
-//   голос «Природа» ─┤→ voicesBus ───┐
-//   20 звуков среды ──→ ambienceBus ──┼→ mixBus → искажение → эхо → реверберация
-//   барабаны ─────────→ drumsBus ────┘        → master (общая громкость) → fader (пауза)
-//                                              → компрессор → лимитер → колонки
-//                                                                   ├→ точки в центре
-//                                                                   └→ запись WAV
-// Эффекты обрабатывают весь микс, поэтому они слышны и в скачанной записи.
-//
-// Все ритмические события висят на ОДНОМ транспорте Tone.Transport,
-// поэтому темп одинаково влияет на мелодии, барабаны и ударные звуки среды.
-// Узлы и циклы создаются один раз в initAudio(); Play/Pause/Сброс их только
-// включают и выключают — повторный старт не плодит копий.
-
 import { VOICE_NOTES, VOICE_IDS, pairToGains } from './state.js';
 import { hitsAtStep } from './patterns.js';
 import { createRecorder } from './recorder.js';
 
 const Tone = window.Tone;
 
-let state = null;          // общий объект настроек (его передаёт main.js)
+let state = null;
 let ready = false;
 let initPromise = null;
 let playing = false;
@@ -30,18 +13,17 @@ let pauseResolvers = [];
 
 let transport;
 let master, fader, mixBus, voicesBus, ambienceBus, drumsBus, limiter, fft;
-const fx = {};             // общие эффекты: drive, driveTrim, echo, space
+const fx = {};
 let recorder = null;
-const voices = {};         // { city: {...}, nature: {...} }
-let ambience = [];         // 10 пар: { top: sound, bottom: sound, side }
+const voices = {};
+let ambience = [];
 let drums = null;
 let stepListener = () => {};
 
-// Небольшие помощники
 const rand = (min, max) => min + Math.random() * (max - min);
 const pickOne = (list) => list[Math.floor(Math.random() * list.length)];
 const seconds = (time) => Tone.Time(time).toSeconds();
-const SMOOTH = 0.05; // секунды: плавное изменение громкостей без щелчков
+const SMOOTH = 0.05;
 
 export function setState(newState) { state = newState; }
 export function onStep(callback) { stepListener = callback; }
@@ -49,45 +31,38 @@ export function isReady() { return ready; }
 export function isPlaying() { return playing; }
 export function getRecorder() { return recorder; }
 
-/* =========================================================
-   Инициализация (только после нажатия пользователя)
-   ========================================================= */
-
 export function initAudio() {
   if (!initPromise) initPromise = buildGraph();
   return initPromise;
 }
 
 async function buildGraph() {
-  // iPhone/iPad: звук сайта играет даже при включённом беззвучном режиме (Safari 16.4+)
+
   if (navigator.audioSession) navigator.audioSession.type = 'playback';
-  await Tone.start(); // разрешаем звук в браузере (вызывается из обработчика клика)
+  await Tone.start();
   transport = Tone.getTransport();
   transport.bpm.value = state.tempo;
 
-  // --- Общий выход с защитой от перегрузки ---
   limiter = new Tone.Limiter(-1).toDestination();
   const compressor = new Tone.Compressor({ threshold: -18, ratio: 3, attack: 0.01, release: 0.2 });
-  fader = new Tone.Gain(0);      // 0 — пауза, 1 — звучит
-  master = new Tone.Gain(0.8);   // общая громкость — ПОСЛЕ эффектов
+  fader = new Tone.Gain(0);
+  master = new Tone.Gain(0.8);
   master.chain(fader, compressor, limiter);
 
-  // --- Общие эффекты на весь микс ---
   mixBus = new Tone.Gain(1);
   fx.drive = new Tone.Distortion({ distortion: 0.1, wet: 0, oversample: '2x' });
-  fx.driveTrim = new Tone.Gain(1);  // чуть убавляет громкость при сильной перегрузке
+  fx.driveTrim = new Tone.Gain(1);
   fx.echo = new Tone.FeedbackDelay({ delayTime: '8n.', feedback: 0.3, wet: 0 });
   fx.space = new Tone.Reverb({ decay: 3.2, preDelay: 0.02, wet: 0 });
   mixBus.chain(fx.drive, fx.driveTrim, fx.echo, fx.space, master);
 
   voicesBus = new Tone.Gain(1).connect(mixBus);
   drumsBus = new Tone.Gain(0.6).connect(mixBus);
-  // Звуки среды проходят через свой лёгкий ревербератор (часть звучания среды), затем в mixBus.
+
   const ambienceSpace = new Tone.Reverb({ decay: 3, wet: 0.18 });
   ambienceBus = new Tone.Gain(0.9).connect(ambienceSpace);
   ambienceSpace.connect(mixBus);
 
-  // Анализатор для точечной визуализации — слушает итоговый звук.
   fft = new Tone.FFT({ size: 256, smoothing: 0.75 });
   limiter.connect(fft);
 
@@ -95,13 +70,11 @@ async function buildGraph() {
   ambience = createAmbience();
   drums = createDrums();
 
-  // Ревербераторы создают импульсный отклик асинхронно — ждём их готовности.
   await Promise.all([
     ambienceSpace.ready,
     fx.space.ready,
   ]);
 
-  // Если браузер не поддерживает запись, звук всё равно должен работать.
   try {
     recorder = await createRecorder(Tone, limiter);
   } catch (error) {
@@ -122,7 +95,6 @@ async function buildGraph() {
   updateAll();
 }
 
-// Заглушка без записи: только считает время игры, скачивание недоступно.
 function createTimerOnlyRecorder() {
   let total = 0;
   let startedAt = null;
@@ -143,18 +115,12 @@ function createTimerOnlyRecorder() {
   };
 }
 
-/* =========================================================
-   Мелодические голоса: источник → громкость канала → voicesBus
-   (эффекты — общие, см. buildGraph)
-   ========================================================= */
-
 function createVoice(id) {
   const isCity = id === 'city';
   let synth;
   let colour;
   if (isCity) {
-    // «Город»: низкий и упругий. Фильтр с резонансом открывается в начале
-    // каждой ноты и быстро закрывается — отсюда «пружинистость» и металлический оттенок.
+
     synth = new Tone.MonoSynth({
       oscillator: { type: 'triangle' },
       envelope: { attack: 0.004, decay: 0.2, sustain: 0.35, release: 0.25 },
@@ -163,29 +129,27 @@ function createVoice(id) {
     });
     colour = new Tone.Filter(5000, 'lowpass');
   } else {
-    // «Природа»: высокий и мягкий. Плавная атака, долгое затухание
-    // и лёгкое вибрато делают звук воздушным.
+
     synth = new Tone.Synth({
       oscillator: { type: 'triangle' },
       envelope: { attack: 0.05, decay: 0.3, sustain: 0.6, release: 0.9 },
     });
     colour = new Tone.Vibrato({ frequency: 5, depth: 0.08 });
   }
-  const softener = new Tone.Filter(isCity ? 6000 : 3000, 'lowpass'); // смягчает квадрат и пилу
+  const softener = new Tone.Filter(isCity ? 6000 : 3000, 'lowpass');
   const channel = new Tone.Gain(0);
   synth.chain(colour, softener, channel, voicesBus);
   registerEnvelope(synth, 'melody');
   return { synth, channel, level: isCity ? 0.8 : 0.65 };
 }
 
-// Номер шага (0…count-1) по позиции транспорта — устойчиво после паузы.
 function stepAt(time, subdivision, count) {
   const ticks = transport.getTicksAtTime(time);
   return Math.round(ticks / Tone.Time(subdivision).toTicks()) % count;
 }
 
 function scheduleMelody() {
-  // Один повторяющийся вызов на восьмые ноты для ОБОИХ голосов.
+
   transport.scheduleRepeat((time) => {
     const step = stepAt(time, '8n', 8);
     const stepLength = seconds('8n');
@@ -193,11 +157,11 @@ function scheduleMelody() {
       const noteIndex = state.voices[id].order[step];
       const note = state.voices[id].notes[noteIndex];
       if (note.on) {
-        // Длительность = доля шага; сам шаг (ритм) не меняется.
+
         voices[id].synth.triggerAttackRelease(VOICE_NOTES[id][noteIndex], note.len * stepLength, time, 0.9);
       }
     });
-    // Подсветка текущей позиции — синхронно со звуком.
+
     Tone.getDraw().schedule(() => stepListener(step), time);
   }, '8n', 0);
 }
@@ -206,21 +170,20 @@ export function updateVoice(id) {
   if (!ready) return;
   const s = state.voices[id];
   const v = voices[id];
-  // Смена формы волны меняет тот же генератор — второй голос не создаётся.
+
   v.synth.oscillator.type = s.wave;
   v.channel.gain.rampTo(s.volume * s.volume * v.level, SMOOTH);
 }
 
-// Перевод значений крутилок (0…1) в реальные параметры общих эффектов.
 export function effectParams(f) {
   return {
-    echoWet: f.echo * 0.5,                   // доля повторов в миксе
-    echoFeedback: 0.1 + f.echo * 0.5,        // сколько раз повторяется (≤ 0.6 — без самовозбуждения)
-    reverbWet: f.depth * 0.7,                // доля реверберации
-    distortion: 0.1 + f.drive * 0.9,         // сила перегрузки
+    echoWet: f.echo * 0.5,
+    echoFeedback: 0.1 + f.echo * 0.5,
+    reverbWet: f.depth * 0.7,
+    distortion: 0.1 + f.drive * 0.9,
     distortionWet: f.drive === 0 ? 0 : Math.min(1, 0.2 + f.drive),
-    driveTrim: 1 - f.drive * 0.45,           // компенсация громкости перегрузки
-    pairFade: 0.04 + f.glide * 0.8,          // время перехода синглов, с
+    driveTrim: 1 - f.drive * 0.45,
+    pairFade: 0.04 + f.glide * 0.8,
   };
 }
 
@@ -236,14 +199,9 @@ export function updateEffects() {
   applyGlide(state.fx.glide);
 }
 
-/* ---------- «Плавность»: атаки и затухания всех слоёв ----------
-   Все синтезаторы с огибающей запоминаются здесь вместе с исходными значениями.
-   Регулятор добавляет время атаки и удлиняет затухание:
-   ноты становятся мягче, удары барабанов и событий среды — округлее и длиннее.
-   Непрерывные шумы среды при включении/выключении проявляются и гаснут дольше (pairFade). */
 const envelopeTargets = [];
 const GLIDE_AMOUNT = {
-  melody: { attack: 0.25, decay: 1.0, release: 2.5 },  // + до 250 мс атаки, затухание до ×3.5
+  melody: { attack: 0.25, decay: 1.0, release: 2.5 },
   event: { attack: 0.04, decay: 1.2, release: 2.0 },
   drum: { attack: 0.012, decay: 1.0, release: 2.0 },
 };
@@ -269,13 +227,6 @@ function applyGlide(g) {
   });
 }
 
-/* =========================================================
-   Звуки среды: 10 пар, 20 звуков
-   ========================================================= */
-
-// Каждый звук — небольшой «рецепт» из узлов Tone.js.
-// sources — непрерывные источники (шум, генераторы, LFO), запускаются один раз;
-// every + play — повторяющиеся события на общем транспорте (синхронно с темпом).
 function makeSound(level, build) {
   const out = new Tone.Gain(0).connect(ambienceBus);
   const recipe = build(out);
@@ -283,7 +234,7 @@ function makeSound(level, build) {
   sound.synths.forEach((synth) => registerEnvelope(synth, 'event'));
   if (recipe.every) {
     sound.loop = new Tone.Loop((time) => {
-      // Если звук выключен, событие не создаём — экономим ресурсы.
+
       if (sound.active) recipe.play(time);
     }, recipe.every);
   }
@@ -294,10 +245,9 @@ const lfo = (frequency, min, max, type = 'sine') => new Tone.LFO({ frequency, mi
 
 function createAmbience() {
   return [
-    /* 1. Транспорт */
+
     {
-      // верх: ровный шум проезжающих машин — фильтрованный шум,
-      // громкость и яркость вместе плавно растут и падают (машина приближается и удаляется)
+
       top: makeSound(0.9, (out) => {
         const noise = new Tone.Noise('pink');
         const filter = new Tone.Filter(600, 'lowpass', -24);
@@ -314,7 +264,7 @@ function createAmbience() {
         rumble.chain(rumbleFilter, rumbleGain, out);
         return { sources: [noise, swell, bright, move, rumble] };
       }),
-      // низ: короткие гудки — созвучия из двух пилообразных тонов
+
       bottom: makeSound(0.32, (out) => {
         const horn = new Tone.PolySynth(Tone.Synth, {
           oscillator: { type: 'sawtooth' },
@@ -340,9 +290,9 @@ function createAmbience() {
         };
       }),
     },
-    /* 2. Люди */
+
     {
-      // верх: шаги — глухой низкий удар + короткое шуршание подошвы, каждую четверть
+
       top: makeSound(0.45, (out) => {
         const heel = new Tone.MembraneSynth({
           pitchDecay: 0.015, octaves: 2.5,
@@ -358,16 +308,14 @@ function createAmbience() {
           synths: [heel, sole],
           every: '4n',
           play(time) {
-            const t = time + rand(0, 0.02); // небольшая «человеческая» неровность
+            const t = time + rand(0, 0.02);
             heel.triggerAttackRelease(left ? 'A1' : 'G1', 0.05, t, left ? 0.9 : 0.7);
             sole.triggerAttackRelease(0.04, t + 0.012, rand(0.5, 0.9));
             left = !left;
           },
         };
       }),
-      // низ: гул разговоров — три «голоса» (пилообразные тона на высоте речи)
-      // с меняющимися слогами, проходят через фильтры-форманты, которые
-      // переключаются между гласными. Слов нет — только похожий на речь тембр.
+
       bottom: makeSound(2.1, (out) => {
         const mix = new Tone.Gain(0.5);
         const f1 = new Tone.Filter({ type: 'bandpass', frequency: 600, Q: 4 });
@@ -387,7 +335,7 @@ function createAmbience() {
           osc.chain(syllable, phrase, pan, mix);
           const syllableLfo = lfo(syllables, 0, 1);
           const phraseLfo = lfo(phrases, 0, 1);
-          const phraseShape = new Tone.Pow(3); // возведение в куб → фразы с паузами между ними
+          const phraseShape = new Tone.Pow(3);
           intonation.connect(osc.frequency);
           syllableLfo.connect(syllable.gain);
           phraseLfo.chain(phraseShape, phrase.gain);
@@ -405,9 +353,9 @@ function createAmbience() {
         };
       }),
     },
-    /* 3. Метро */
+
     {
-      // верх: гул вагона в тоннеле — низкий шум, гудение мотора и тонкий «свист» металла
+
       top: makeSound(0.36, (out) => {
         const amp = new Tone.Gain(0).connect(out);
         const noise = new Tone.Noise('brown');
@@ -426,7 +374,7 @@ function createAmbience() {
         sway.connect(amp.gain);
         return { sources: [noise, hum, hum2, whine, whineLfo, sway] };
       }),
-      // низ: стук колёс «та-дам» — две пары ударов на такт, синхронно с темпом
+
       bottom: makeSound(0.45, (out) => {
         const knock = new Tone.MembraneSynth({
           pitchDecay: 0.01, octaves: 3,
@@ -449,9 +397,9 @@ function createAmbience() {
         };
       }),
     },
-    /* 4. Стройка */
+
     {
-      // верх: редкие удары молотка — металлический звон + короткий стук
+
       top: makeSound(0.56, (out) => {
         const ring = new Tone.MetalSynth({
           envelope: { attack: 0.001, decay: 0.22, release: 0.05 },
@@ -473,7 +421,7 @@ function createAmbience() {
           },
         };
       }),
-      // низ: ровный шум механизма — низкие тона и шум, «пыхтящая» модуляция громкости
+
       bottom: makeSound(0.3, (out) => {
         const chug = new Tone.Gain(0).connect(out);
         const filter = new Tone.Filter({ type: 'lowpass', frequency: 420, Q: 3 });
@@ -492,10 +440,9 @@ function createAmbience() {
         return { sources: [engine1, engine2, grind, chugLfo, filterLfo] };
       }),
     },
-    /* 5. Сигналы */
+
     {
-      // верх: далёкий сигнал громкоговорителя — трёхнотный «дин-дон-дин»
-      // через полосовой фильтр (маленький динамик) и эхо (большое расстояние)
+
       top: makeSound(1.26, (out) => {
         const chime = new Tone.FMSynth({
           harmonicity: 3, modulationIndex: 2,
@@ -517,7 +464,7 @@ function createAmbience() {
           },
         };
       }),
-      // низ: пульсирующая сирена — высота тона плавно ходит вверх-вниз
+
       bottom: makeSound(0.09, (out) => {
         const osc = new Tone.Oscillator(800, 'square');
         const filter = new Tone.Filter(1800, 'lowpass');
@@ -527,9 +474,9 @@ function createAmbience() {
         return { sources: [osc, wail] };
       }),
     },
-    /* 6. Птицы */
+
     {
-      // верх: короткое звонкое щебетание — серии быстрых высоких «чирик» со скольжением вверх
+
       top: makeSound(0.5, (out) => {
         const bird = new Tone.Synth({
           oscillator: { type: 'sine' },
@@ -555,7 +502,7 @@ function createAmbience() {
           },
         };
       }),
-      // низ: редкие протяжные крики — тон поднимается и долго опускается («ки-ау»), с вибрато
+
       bottom: makeSound(0.67, (out) => {
         const gull = new Tone.Synth({
           oscillator: { type: 'sawtooth' },
@@ -583,9 +530,9 @@ function createAmbience() {
         };
       }),
     },
-    /* 7. Дождь */
+
     {
-      // верх: отдельные капли по подоконнику — короткий тон со скольжением вверх («плинк») + щелчок
+
       top: makeSound(0.46, (out) => {
         const drop = new Tone.Synth({
           oscillator: { type: 'sine' },
@@ -609,7 +556,7 @@ function createAmbience() {
           },
         };
       }),
-      // низ: плотный шум ливня — широкая полоса белого шума + низкий «объём» розового шума
+
       bottom: makeSound(0.33, (out) => {
         const hiss = new Tone.Noise('white');
         const band = new Tone.Filter(500, 'highpass');
@@ -623,9 +570,9 @@ function createAmbience() {
         return { sources: [hiss, body] };
       }),
     },
-    /* 8. Ветер */
+
     {
-      // верх: мягкий ветер в деревьях — розовый шум, полоса медленно гуляет по частоте
+
       top: makeSound(1.5, (out) => {
         const noise = new Tone.Noise('pink');
         const band = new Tone.Filter({ type: 'bandpass', frequency: 500, Q: 0.8 });
@@ -637,7 +584,7 @@ function createAmbience() {
         drift.connect(band.frequency); breath.connect(amp.gain);
         return { sources: [noise, drift, breath] };
       }),
-      // низ: сильные свистящие порывы — узкая резонансная полоса (свист) + низкий гул, громкость порывами
+
       bottom: makeSound(1.5, (out) => {
         const gust = new Tone.Gain(0).connect(out);
         const whistleNoise = new Tone.Noise('white');
@@ -650,14 +597,14 @@ function createAmbience() {
         roarNoise.chain(roar, roarGain, gust);
         const pitch = lfo(0.17, 700, 2400);
         const strength = lfo(0.21, 0, 1);
-        const gustShape = new Tone.Pow(3); // куб: долгое затишье и резкий порыв
+        const gustShape = new Tone.Pow(3);
         pitch.connect(whistle.frequency); strength.chain(gustShape, gust.gain);
         return { sources: [whistleNoise, roarNoise, pitch, strength] };
       }),
     },
-    /* 9. Растительность */
+
     {
-      // верх: шелест листвы — мягкие всплески высокого шума с плавной атакой
+
       top: makeSound(0.4, (out) => {
         const rustle = new Tone.NoiseSynth({
           noise: { type: 'white' },
@@ -682,7 +629,7 @@ function createAmbience() {
           },
         };
       }),
-      // низ: сухой хруст веток и листьев — быстрые серии очень коротких щелчков + треск
+
       bottom: makeSound(1.3, (out) => {
         const crack = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.0005, decay: 0.008, sustain: 0 } });
         const crackFilter = new Tone.Filter({ type: 'bandpass', frequency: 2600, Q: 1.5 });
@@ -700,16 +647,16 @@ function createAmbience() {
             const clicks = 7 + Math.floor(Math.random() * 8);
             let t = start;
             for (let k = 0; k < clicks; k++) {
-              t += rand(0.012, 0.035); // время строго растёт — события не наслаиваются
+              t += rand(0.012, 0.035);
               crack.triggerAttackRelease(0.004, t, rand(0.3, 1));
             }
           },
         };
       }),
     },
-    /* 10. Вода */
+
     {
-      // верх: журчание ручья — мягкий шум воды + постоянные мелкие «бульки» со скольжением вверх
+
       top: makeSound(0.37, (out) => {
         const bed = new Tone.Noise('pink');
         const bedFilter = new Tone.Filter({ type: 'bandpass', frequency: 700, Q: 0.6 });
@@ -717,7 +664,7 @@ function createAmbience() {
         bed.chain(bedFilter, bedGain, out);
         const bedLfo = lfo(0.2, 500, 1000);
         bedLfo.connect(bedFilter.frequency);
-        // Два независимых «булька», чтобы события одного синтезатора не перекрывались по времени.
+
         const bubbles = [0, 1].map(() => {
           const synth = new Tone.Synth({
             oscillator: { type: 'sine' },
@@ -742,7 +689,7 @@ function createAmbience() {
           },
         };
       }),
-      // низ: всплески — шумовой удар с закрывающимся фильтром, «плюх» и маленький повторный всплеск
+
       bottom: makeSound(0.58, (out) => {
         const splash = new Tone.NoiseSynth({
           noise: { type: 'white' },
@@ -774,10 +721,6 @@ function createAmbience() {
   ].map((pair) => ({ ...pair, side: 0 }));
 }
 
-// Положение сингла (верх / центр / низ) → громкости пары.
-// Если звук переключается сверху вниз (или наоборот), новый звук начинает
-// появляться только ПОСЛЕ того, как старый затих — пара никогда не смешивается.
-// Время перехода зависит от «Плавности».
 export function updateAmbience(index) {
   if (!ready) return;
   const pair = ambience[index];
@@ -802,10 +745,6 @@ export function updateAmbience(index) {
   });
   pair.side = gains.side;
 }
-
-/* =========================================================
-   Барабаны
-   ========================================================= */
 
 function createDrums() {
   const bus = drumsBus;
@@ -844,7 +783,7 @@ function createDrums() {
   const play = {
     kick: (t, v) => kick.triggerAttackRelease('C1', 0.2, t, v),
     snare: (t, v) => { snareNoise.triggerAttackRelease(0.1, t, v); snareBody.triggerAttackRelease(190, 0.06, t, v); },
-    // клэп — три быстрых удара подряд, как несколько хлопков ладоней
+
     clap: (t, v) => { [0, 0.011, 0.022].forEach((d) => clap.triggerAttackRelease(0.08, t + d, v)); },
     hat: (t, v) => hat.triggerAttackRelease(0.03, t, v),
     open: (t, v) => open.triggerAttackRelease(0.2, t, v),
@@ -856,8 +795,7 @@ function createDrums() {
 }
 
 function scheduleDrums() {
-  // ОДИН цикл на шестнадцатые. Пресет и плотность читаются на каждом шаге,
-  // поэтому переключение пресета не запускает второй цикл.
+
   transport.scheduleRepeat((time) => {
     const step = stepAt(time, '16n', 16);
     hitsAtStep(state.drums.preset, state.drums.density, step).forEach((hit) => {
@@ -872,14 +810,10 @@ export function updateDrums() {
   drumsBus.gain.rampTo(v * v * 0.55, SMOOTH);
 }
 
-/* =========================================================
-   Общие параметры
-   ========================================================= */
-
 export function updateTempo() {
   if (!ready) return;
   transport.bpm.value = state.tempo;
-  // Эхо привязано к темпу: пересчитываем время задержки.
+
   fx.echo.delayTime.rampTo(seconds('8n.'), 0.1);
 }
 
@@ -899,10 +833,6 @@ export function updateAll() {
   state.ambience.forEach((_, i) => updateAmbience(i));
 }
 
-/* =========================================================
-   Play / Pause / Стоп
-   ========================================================= */
-
 export function play() {
   if (!ready || playing) return;
   playing = true;
@@ -914,13 +844,10 @@ export function play() {
   fader.gain.linearRampToValueAtTime(1, now + 0.12);
 }
 
-// Пауза: плавно приглушаем ВЕСЬ выход (вместе с хвостами эха и реверберации),
-// затем останавливаем события, отпускаем ноты и приостанавливаем запись.
-// Если во время затухания снова нажать Start, пауза отменяется.
 let pausePromise = null;
 export function pause() {
   if (!ready) return Promise.resolve();
-  if (!playing) return pausePromise || Promise.resolve(); // пауза уже идёт или звук стоит
+  if (!playing) return pausePromise || Promise.resolve();
   playing = false;
   const now = Tone.now();
   fader.gain.cancelAndHoldAtTime(now);
@@ -952,7 +879,6 @@ function finishPause() {
   pausePromise = null;
 }
 
-// Полная остановка для кнопки «Сброс»: тишина, транспорт в ноль, запись удаляется.
 export async function stopAndClear() {
   if (!ready) return;
   cancelPendingPause();
@@ -968,7 +894,6 @@ export async function stopAndClear() {
   recorder.clear();
 }
 
-// Отпустить все ноты — никаких зависших звуков после паузы и сброса.
 function releaseEverything() {
   const now = Tone.now();
   VOICE_IDS.forEach((id) => voices[id].synth.triggerRelease(now));
@@ -980,11 +905,6 @@ function releaseEverything() {
   }));
 }
 
-/* =========================================================
-   Для визуализации и проверок
-   ========================================================= */
-
-// Уровни шести частотных полос итогового звука (0…1).
 const BANDS = [[40, 200], [200, 500], [500, 1200], [1200, 3000], [3000, 6500], [6500, 14000]];
 export function getBandLevels() {
   if (!ready) return BANDS.map(() => 0);
@@ -999,7 +919,6 @@ export function getBandLevels() {
   });
 }
 
-// Доступ к узлам для автоматических проверок (tests/). В работе сайта не используется.
 export function debugNodes() {
   return { voices, ambience, drumsBus, voicesBus, ambienceBus, mixBus, fx, master, fader, limiter, transport, envelopeTargets };
 }

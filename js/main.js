@@ -1,10 +1,3 @@
-// main.js — интерфейс «Битоники»: создаёт элементы управления,
-// хранит состояние и передаёт изменения в audio.js.
-//
-// Правило проекта: ЛЮБОЕ действие пользователя сначала меняет объект state,
-// затем вызывает функцию обновления звука (audio.update…). Поэтому звук,
-// интерфейс, сброс и ссылка всегда используют одни и те же значения.
-
 import {
   createDefaultState, readHash, encodeState, NOTE_LABELS, VOICE_IDS, WAVES,
   RANGES, pairToGains,
@@ -15,7 +8,6 @@ import { setupNoteReorder } from './note-reorder.js';
 import { MAX_SECONDS } from './recorder.js';
 import { createFader, createPairToggle, createKnob, createSegmented, icon, maskIcon } from './controls.js';
 
-/* ---------- Описание звуков среды: название и иконки пар ---------- */
 const AMBIENCE = [
   { name: 'Транспорт', top: ['Машины', 'car'], bottom: ['Гудки', 'car-horn'] },
   { name: 'Люди', top: ['Шаги', 'person'], bottom: ['Разговоры', 'people'] },
@@ -36,7 +28,6 @@ const WAVE_INFO = {
   sawtooth: ['Пила', 'wave-saw'],
 };
 
-// Общие эффекты на всю композицию: [ключ, подпись, текст значения, подсказка]
 const FX_INFO = [
   ['echo', 'эхо', (v) => pct(v), 'Эхо: повторы всего микса'],
   ['depth', 'глубина', (v) => pct(v), 'Глубина: реверберация всего микса'],
@@ -48,12 +39,11 @@ const FX_INFO = [
 const VOICE_NAMES = { city: 'Город', nature: 'Природа' };
 const pct = (v) => `${Math.round(v * 100)}%`;
 
-/* ---------- Состояние ---------- */
 let state = createDefaultState();
-let busy = false;           // идёт запуск, пауза, сброс или подготовка файла
-const refreshers = [];      // функции, которые перерисовывают элементы из state
+let busy = false;
+const refreshers = [];
 const noteRows = { city: [], nature: [] };
-const pairIcons = [];       // [{ top, bottom }] — подсветка активного звука пары
+const pairIcons = [];
 
 const $ = (id) => document.getElementById(id);
 const playBtn = $('playBtn');
@@ -61,15 +51,10 @@ const downloadBtn = $('downloadBtn');
 const shareBtn = $('shareBtn');
 const resetBtn = $('resetBtn');
 
-/* =========================================================
-   Построение интерфейса
-   ========================================================= */
-
 function buildVoice(id) {
   const panel = document.querySelector(`[data-voice="${id}"]`);
   const name = VOICE_NAMES[id];
 
-  // Громкость голоса
   const volume = createFader({
     label: `Громкость: ${name}`, length: 236, value: state.voices[id].volume, defaultValue: 0.75,
     format: pct,
@@ -78,7 +63,6 @@ function buildVoice(id) {
   panel.querySelector('[data-slot="volume"]').append(volume.el);
   refreshers.push(() => volume.set(state.voices[id].volume));
 
-  // Восемь нот: кнопка включения + ползунок длительности
   const notesBox = panel.querySelector('[data-slot="notes"]');
   NOTE_LABELS.forEach((label, i) => {
     const row = document.createElement('div');
@@ -143,7 +127,6 @@ function buildVoice(id) {
   }
   refreshers.push(renderOrder);
 
-  // Форма волны
   const waves = createSegmented(
     panel.querySelector('[data-slot="waves"]'),
     WAVES.map((w) => ({ value: w, label: `${name}: ${WAVE_INFO[w][0]}`, html: icon(WAVE_INFO[w][1]) })),
@@ -153,7 +136,6 @@ function buildVoice(id) {
   );
   refreshers.push(() => waves.set(state.voices[id].wave));
 
-  // Пять парных ползунков среды под голосом
   const pairsBox = panel.querySelector('[data-slot="pairs"]');
   const first = id === 'city' ? 0 : 5;
   for (let index = first; index < first + 5; index++) {
@@ -192,7 +174,7 @@ function buildPair(index) {
       markActive();
     },
   });
-  // порядок: верхняя иконка, ползунок, нижняя иконка
+
   column.insertBefore(slider.el, column.children[1]);
   refreshers.push(() => { slider.set(state.ambience[index]); markActive(); });
   markActive();
@@ -206,7 +188,7 @@ function buildCenter() {
     { value: 'evening', label: 'Вечер', html: maskIcon('cloud-moon') },
   ];
   const control = createSegmented($('timeOfDay'), times, state.timeOfDay, (t) => {
-    state.timeOfDay = t; // меняет только атмосферу фона, композицию не трогает
+    state.timeOfDay = t;
     document.body.dataset.time = t;
   });
   refreshers.push(() => { control.set(state.timeOfDay); document.body.dataset.time = state.timeOfDay; });
@@ -239,7 +221,7 @@ function buildDrums() {
       html: String(n),
     })),
     state.drums.preset,
-    (n) => { state.drums.preset = n; }, // 0 — барабаны выключены
+    (n) => { state.drums.preset = n; },
     'segmented__btn',
     0,
   );
@@ -262,7 +244,7 @@ function buildDrums() {
 }
 
 function buildEffects() {
-  // Эффекты общие: обрабатывают оба синтезатора, синглы и барабаны.
+
   const knobs = FX_INFO.map(([key, label, format, hint]) => {
     const knob = createKnob({
       label,
@@ -289,10 +271,6 @@ function renderAll() {
   refreshers.forEach((refresh) => refresh());
 }
 
-/* =========================================================
-   Верхняя панель: старт/пауза, скачивание, ссылка, сброс
-   ========================================================= */
-
 async function togglePlay() {
   if (busy) return;
   busy = true;
@@ -301,7 +279,7 @@ async function togglePlay() {
       playBtn.classList.add('is-busy');
       playBtn.setAttribute('aria-label', 'Загрузка звука…');
       showToast('Загрузка звука…');
-      await audio.initAudio(); // Tone.start() вызывается внутри — сразу после нажатия
+      await audio.initAudio();
       if (audio.getRecorder().unavailable) {
         downloadBtn.title = 'Запись звука недоступна в этом браузере';
         setTimeout(() => showToast('Звук работает, но запись в этом браузере недоступна', 4000), 2700);
@@ -312,7 +290,7 @@ async function togglePlay() {
       });
       hideToast();
     }
-    // Пауза не блокирует кнопку: во время затухания можно сразу продолжить.
+
     if (audio.isPlaying()) audio.pause().then(renderTransport);
     else audio.play();
   } catch (error) {
@@ -340,10 +318,10 @@ async function downloadRecording() {
   downloadBtn.setAttribute('aria-label', 'Подготовка…');
   showToast('Подготовка…', 0);
   try {
-    // Скачивание во время игры: сначала пауза — запись корректно завершается.
+
     if (audio.isPlaying()) await audio.pause();
     renderTransport();
-    await new Promise((resolve) => setTimeout(resolve, 30)); // даём интерфейсу показать «Подготовка…»
+    await new Promise((resolve) => setTimeout(resolve, 30));
     const blob = recorder.toWavBlob();
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -385,8 +363,8 @@ async function resetAll() {
   if (busy) return;
   busy = true;
   try {
-    await audio.stopAndClear(); // звук и запись остановлены, запись удалена, время — 0
-    state = createDefaultState(); // начальные настройки — из одного места (state.js)
+    await audio.stopAndClear();
+    state = createDefaultState();
     audio.setState(state);
     renderAll();
     audio.updateAll();
@@ -399,7 +377,6 @@ async function resetAll() {
   }
 }
 
-// Открыли ссылку с настройками в уже открытой вкладке
 function applyHash() {
   const loaded = readHash(location.hash);
   if (!loaded) return;
@@ -413,10 +390,6 @@ function applyHash() {
   audio.updateAll();
   showToast('Настройки из ссылки загружены');
 }
-
-/* =========================================================
-   Время, подсветка шага, визуализация
-   ========================================================= */
 
 let currentStep = -1;
 function highlightStep(step) {
@@ -434,7 +407,7 @@ const COLS = 6;
 const shown = new Array(COLS).fill(0);
 
 function frame() {
-  // Время сессии = длительность накопленной записи
+
   const recorder = audio.getRecorder();
   const secs = recorder ? recorder.seconds : 0;
   timeText.textContent = formatTime(secs);
@@ -463,7 +436,7 @@ function drawDots(levels) {
   const lime = getComputedStyle(document.documentElement).getPropertyValue('--lime').trim() || '#bbfc9f';
 
   for (let c = 0; c < COLS; c++) {
-    // Быстрый подъём и плавное затухание — точки «дышат» вместе со звуком
+
     shown[c] = Math.max(levels[c], shown[c] * 0.9);
     const lit = Math.round(shown[c] * rows);
     for (let r = 0; r < rows; r++) {
@@ -476,7 +449,6 @@ function drawDots(levels) {
   }
 }
 
-/* ---------- Мелочи ---------- */
 const toast = $('toast');
 let toastTimer = null;
 function showToast(text, duration = 2600) {
@@ -498,12 +470,8 @@ function timestamp() {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
 }
 
-/* =========================================================
-   Запуск
-   ========================================================= */
-
 function start() {
-  // Настройки из ссылки (если есть). Звук начнётся только после нажатия «Старт».
+
   const loaded = readHash(location.hash);
   if (loaded) {
     state = loaded.state;

@@ -1,19 +1,6 @@
-// recorder.js — запись итогового звука в настоящий WAV-файл.
-//
-// Почему не Tone.Recorder: он использует MediaRecorder, который пишет
-// WebM/Ogg/MP4 (формат зависит от браузера), а в Tone.js 15.1.22 его
-// продолжение после паузы ожидает событие "start", которое браузер при resume
-// не присылает. Поэтому здесь маленький AudioWorklet (стандартный браузерный
-// аудио-API): он получает те же сэмплы, что уходят в колонки, и передаёт их
-// в основной поток. Пока инструмент на паузе, сэмплы не сохраняются —
-// поэтому в файле нет длинных пауз. В конце сэмплы упаковываются в WAV
-// (16 бит, стерео) — расширение .wav соответствует содержимому.
-
 const PROCESSOR_NAME = 'bitonika-tap';
-export const MAX_SECONDS = 10 * 60; // предел записи: 10 минут ≈ 110 МБ WAV
+export const MAX_SECONDS = 10 * 60;
 
-// Код процессора. Он выполняется в отдельном аудиопотоке браузера.
-// Создаём его из строки (Blob URL), чтобы не было ещё одного файла.
 const WORKLET_SOURCE = `
 class BitonikaTap extends AudioWorkletProcessor {
   constructor() {
@@ -55,7 +42,6 @@ class BitonikaTap extends AudioWorkletProcessor {
 registerProcessor('${PROCESSOR_NAME}', BitonikaTap);
 `;
 
-// Создаёт запись, подключённую к узлу source (итоговый выход инструмента).
 export async function createRecorder(Tone, source) {
   const context = Tone.getContext();
   const url = URL.createObjectURL(new Blob([WORKLET_SOURCE], { type: 'application/javascript' }));
@@ -70,13 +56,13 @@ export async function createRecorder(Tone, source) {
     channelCountMode: 'explicit',
   });
   Tone.connect(source, node);
-  // Узел должен быть подключён к выходу, иначе браузер может его не вызывать.
-  // Gain(0) гарантирует, что звук не удвоится.
+
+  // Нулевой выход поддерживает работу AudioWorklet без повторного звучания.
   const silent = new Tone.Gain(0).toDestination();
   Tone.connect(node, silent);
 
   const sampleRate = context.sampleRate;
-  let chunks = [];        // массивы Int16Array (кадры L,R,L,R…)
+  let chunks = [];
   let frameCount = 0;
   let capturing = false;
   let stopWaiters = [];
@@ -97,13 +83,13 @@ export async function createRecorder(Tone, source) {
   };
 
   return {
-    // Начать или продолжить запись.
+
     start() {
       if (capturing) return;
       capturing = true;
       node.port.postMessage('start');
     },
-    // Приостановить запись. Промис выполняется, когда все сэмплы получены.
+
     stop() {
       return new Promise((resolve) => {
         stopWaiters.push(resolve);
@@ -111,7 +97,7 @@ export async function createRecorder(Tone, source) {
         node.port.postMessage('stop');
       });
     },
-    // Удалить накопленную запись (кнопка «Сброс»).
+
     clear() {
       chunks = [];
       frameCount = 0;
@@ -124,7 +110,6 @@ export async function createRecorder(Tone, source) {
   };
 }
 
-// Float32 (-1…1) → Int16, каналы чередуются: L R L R …
 function floatToInt16(left, right) {
   const out = new Int16Array(left.length * 2);
   for (let i = 0; i < left.length; i++) {
@@ -139,7 +124,6 @@ function toInt16(x) {
   return s < 0 ? s * 0x8000 : s * 0x7fff;
 }
 
-// Стандартный 44-байтовый заголовок WAV (PCM, 16 бит, 2 канала) + данные.
 export function encodeWav(chunks, frameCount, sampleRate) {
   const channels = 2;
   const bytesPerSample = 2;
@@ -152,13 +136,13 @@ export function encodeWav(chunks, frameCount, sampleRate) {
   header.setUint32(4, 36 + dataSize, true);
   writeText(8, 'WAVE');
   writeText(12, 'fmt ');
-  header.setUint32(16, 16, true);                       // размер блока fmt
-  header.setUint16(20, 1, true);                        // PCM
+  header.setUint32(16, 16, true);
+  header.setUint16(20, 1, true);
   header.setUint16(22, channels, true);
   header.setUint32(24, sampleRate, true);
   header.setUint32(28, sampleRate * channels * bytesPerSample, true);
   header.setUint16(32, channels * bytesPerSample, true);
-  header.setUint16(34, 16, true);                       // бит на сэмпл
+  header.setUint16(34, 16, true);
   writeText(36, 'data');
   header.setUint32(40, dataSize, true);
   return new Blob([header, ...chunks], { type: 'audio/wav' });

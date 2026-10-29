@@ -1,12 +1,3 @@
-/* =========================================================
-   Битоника — стили
-   Все размеры макета записаны в «единицах макета» --u:
-   1 единица = 1 пиксель исходного макета (ширина ~1430 px).
-   На экранах ноутбуков --u уменьшается так, чтобы интерфейс помещался
-   по высоте, но не меньше читаемого минимума. Это не масштабирование
-   картинкой: элементы по-прежнему раскладываются через Grid и Flexbox.
-   ========================================================= */
-
 @font-face {
   font-family: 'Inter';
   font-weight: 300;
@@ -37,7 +28,6 @@
 }
 
 :root {
-  /* Цвета */
   --lime: #bbfc9f;
   --lime-08: rgba(187, 252, 159, 0.08);
   --lime-20: rgba(187, 252, 159, 0.2);
@@ -50,11 +40,7 @@
   --off-fill: rgba(196, 214, 214, 0.42);
   --off-text: rgba(225, 235, 230, 0.45);
   --dot-off: rgba(255, 255, 255, 0.2);
-
-  /* Единица макета: подстраивается под ширину и высоту окна */
   --u: clamp(0.54px, min(100vw / 1400, 100vh / 1470), 1.1px);
-
-  /* Повторяющиеся размеры */
   --border: calc(2.5 * var(--u));
   --radius-panel: calc(34 * var(--u));
   --round-btn: calc(70 * var(--u));
@@ -97,10 +83,6 @@ button { font: inherit; color: inherit; }
   outline: calc(3 * var(--u)) solid #ffffff;
   outline-offset: calc(3 * var(--u));
 }
-
-/* ---------- Атмосферный фон ----------
-   Временный CSS-фон: размытые цветовые пятна + зерно.
-   Три слоя (утро, день, вечер) плавно сменяют друг друга. */
 .backdrop {
   position: fixed;
   inset: 0;
@@ -164,8 +146,6 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-
-/* ---------- Каркас страницы ---------- */
 .page {
   width: calc(1330 * var(--u));
   margin: 0 auto;
@@ -187,20 +167,15 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
   display: block;
   height: calc(95 * var(--u));
   min-height: 40px;
-  width: auto;            /* ширина по пропорциям PNG — без растягивания */
+  width: auto;
   max-width: 100%;
-  object-fit: contain;    /* если места мало, логотип уменьшается целиком, не обрезается */
+  object-fit: contain;
 }
-
-/* Авторские PNG-иконки: вписываются в квадрат, пропорции сохраняются */
 .icon-img {
   object-fit: contain;
   -webkit-user-drag: none;
   user-select: none;
 }
-
-/* PNG как маска: рисунок авторский, цвет берётся из currentColor
-   (лаймовый — обычно, тёмный — на выбранной лаймовой кнопке) */
 .icon-mask {
   display: inline-block;
   background-color: currentColor;
@@ -250,8 +225,6 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
   width: 0;
   background: var(--lime);
 }
-
-/* ---------- Круглые кнопки ---------- */
 .round-btn {
   position: relative;
   display: grid;
@@ -298,8 +271,6 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
-
-/* ---------- Панели ---------- */
 .panel {
   position: relative;
   border: var(--border) solid var(--lime);
@@ -313,8 +284,6 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
   margin: 0;
   font-size: var(--text);
 }
-
-/* ---------- Средняя часть: два голоса и визуализация ---------- */
 .board {
   display: grid;
   grid-template-columns: calc(545 * var(--u)) 1fr calc(545 * var(--u));
@@ -356,8 +325,6 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
 .synth .waves { grid-area: waves; }
 .synth .pairs { grid-area: pairs; }
 .synth .panel__caption { grid-area: caption; margin-top: calc(14 * var(--u)); }
-
-/* Единая плашка ноты: ручка, кнопка, название и длительность */
 .notes {
   display: grid;
   position: relative;
@@ -402,16 +369,12 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
 .note.is-on .note__toggle { background: var(--lime); border-color: var(--lime); }
 .note.is-on .note__label { color: var(--lime); }
 .note:not(.is-on) .fader { opacity: 0.35; }
-
-/* Текущая проигрываемая позиция — тонкое кольцо вокруг квадрата */
 .note.is-current .note__toggle {
   box-shadow: 0 0 0 calc(3 * var(--u)) var(--navy), 0 0 0 calc(5.5 * var(--u)) var(--lime);
 }
 .note.is-current:not(.is-on) .note__toggle {
   box-shadow: 0 0 0 calc(3 * var(--u)) transparent, 0 0 0 calc(5.5 * var(--u)) var(--off-text);
 }
-
-/* Кнопки формы волны */
 .waves {
   display: flex;
   flex-direction: column;
@@ -421,8 +384,6 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
 
 .wave-btn .icon { width: calc(36 * var(--u)); height: calc(36 * var(--u)); }
 .wave-btn[aria-checked='true'] { background: var(--lime); color: var(--navy); }
-
-/* Парные ползунки среды */
 .pairs {
   display: flex;
   justify-content: space-between;
@@ -436,7 +397,6 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
   gap: calc(10 * var(--u));
 }
 
-
 .pair__icon {
   width: calc(24 * var(--u));
   height: calc(24 * var(--u));
@@ -446,8 +406,6 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
   transition: opacity 0.15s;
 }
 .pair__icon.is-active { opacity: 1; }
-
-/* ---------- Центр: точки и время суток ---------- */
 .center {
   display: flex;
   flex-direction: column;
@@ -462,16 +420,12 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
   width: calc(132 * var(--u));
   min-height: 0;
 }
-
-/* canvas занимает обёртку целиком и не влияет на её размер */
 .dots canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
-
-/* Сегментированный переключатель (время суток, пресеты, «Город/Природа») */
 .segmented {
   display: flex;
   align-items: center;
@@ -510,8 +464,6 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
   font-weight: 300;
 }
 .segmented--presets { gap: calc(4 * var(--u)); padding: calc(3 * var(--u)) calc(5 * var(--u)); }
-
-/* ---------- Нижние панели ---------- */
 .bottom {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -587,10 +539,6 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
 }
 
 .fader-col--master { padding-top: calc(16 * var(--u)); }
-
-/* ---------- Ползунки (обычный <input type="range">) ----------
-   Встроенный элемент даёт управление мышью, касанием и клавиатурой.
-   Вертикальные ползунки поворачиваются через writing-mode. */
 .fader {
   -webkit-appearance: none;
   appearance: none;
@@ -605,10 +553,9 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
 
 .fader--vertical {
   writing-mode: vertical-lr;
-  direction: rtl; /* максимум сверху */
+  direction: rtl;
   width: calc(62 * var(--u));
   min-width: 34px;
-  /* тонкая линия-направляющая по центру */
   background: linear-gradient(var(--lime), var(--lime)) center / max(2px, calc(2.5 * var(--u))) 100% no-repeat;
 }
 
@@ -641,18 +588,12 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
   border-radius: calc(3 * var(--u));
   background: var(--lime);
 }
-
-/* Вертикальный ползунок: ширина и высота ручки меняются местами по осям */
 .fader--vertical::-webkit-slider-thumb { width: var(--thumb-w); height: var(--thumb-h); min-width: 34px; min-height: 18px; }
-
-/* Парный ползунок среды — «таблетка» с круглой ручкой */
 .pair__track {
   position: relative;
   display: grid;
   place-items: center;
 }
-
-/* метка центра (зона тишины) */
 .pair__track::before {
   content: '';
   position: absolute;
@@ -675,7 +616,6 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
   padding: calc(5 * var(--u));
   border: var(--border) solid var(--lime);
   border-radius: 999px;
-  /* подсветка половины, в которой стоит переключатель (см. data-position ниже) */
   background:
     linear-gradient(to top, transparent var(--from, 50%), var(--lime-30) var(--from, 50%) var(--to, 50%), transparent var(--to, 50%)),
     var(--lime-08);
@@ -693,8 +633,6 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
 
 .pair__track[data-position='top'] .fader--pair { --from: 50%; --to: 100%; }
 .pair__track[data-position='bottom'] .fader--pair { --from: 0%; --to: 50%; }
-
-/* ---------- Крутилки ---------- */
 .knob-wrap {
   display: flex;
   flex-direction: column;
@@ -760,8 +698,6 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
   margin: calc(44 * var(--u)) calc(60 * var(--u)) calc(12 * var(--u));
 }
 .knob--big .knob__pointer { height: 24%; width: calc(6 * var(--u)); }
-
-/* ---------- Подсказки и сообщения ---------- */
 .readout {
   position: fixed;
   z-index: 20;
@@ -827,11 +763,6 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
   color: var(--ink);
   cursor: pointer;
 }
-
-/* =========================================================
-   Узкие экраны (телефон, узкое окно): одна колонка и вертикальный скролл.
-   Размеры не уменьшаются до нечитаемых — --u привязан к ширине.
-   ========================================================= */
 @media (max-width: 900px) {
   :root { --u: clamp(0.56px, calc((100vw - 24px) / 600), 1px); }
 
@@ -863,7 +794,7 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
     justify-content: center;
     gap: 16px;
     height: auto;
-    order: -1; /* визуализация и время суток — сразу под шапкой */
+    order: -1;
   }
 
   .dots {
@@ -879,8 +810,6 @@ body[data-time='evening'] .sky--evening { opacity: 1; }
   .drums__faders { height: 240px; }
   .fader-col--master { height: 260px; }
 }
-
-/* Ручка не перехватывает жесты на остальных элементах плашки. */
 .note__handle {
   display: grid;
   place-items: center;

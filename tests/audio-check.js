@@ -1,7 +1,3 @@
-// Автоматическая проверка аудиосистемы (без интерфейса).
-// Открывается через tests/audio-check.html; результат пишется в window.audioReport.
-// Измеряет пиковый уровень каждого из 20 звуков среды, голосов и барабанов.
-
 import { createDefaultState } from '../js/state.js';
 import * as audio from '../js/audio.js';
 
@@ -17,7 +13,6 @@ function meterOn(node, smoothing = 0) {
   return meter;
 }
 
-// Максимальный уровень (дБ) нескольких измерителей за durationMs.
 async function peaks(meters, durationMs) {
   const max = meters.map(() => -Infinity);
   const end = performance.now() + durationMs;
@@ -42,18 +37,16 @@ export async function runAudioCheck() {
   const topMeters = nodes.ambience.map((p) => meterOn(p.top.out));
   const bottomMeters = nodes.ambience.map((p) => meterOn(p.bottom.out));
   const masterMeter = meterOn(nodes.limiter);
-  // «Средний» уровень (сильно сглаженный измеритель) — показывает громкость на слух
+
   const topAvg = nodes.ambience.map((p) => meterOn(p.top.out, 0.97));
   const bottomAvg = nodes.ambience.map((p) => meterOn(p.bottom.out, 0.97));
   audio.play();
 
-  // 1. Все ползунки в центре: тишина
   await wait(600);
   let [t, b] = await Promise.all([peaks(topMeters, 1500), peaks(bottomMeters, 1500)]);
   report.centerSilent = t.concat(b).every((v) => v === -Infinity || v < -90);
   log('Центр — тишина: ' + report.centerSilent);
 
-  // 2. Все вверх, затем все вниз: звучит только выбранная сторона
   for (const side of [1, -1]) {
     state.ambience = state.ambience.map(() => side);
     state.ambience.forEach((_, i) => audio.updateAmbience(i));
@@ -73,7 +66,6 @@ export async function runAudioCheck() {
     log((side === 1 ? 'Верх: ' : 'Низ: ') + JSON.stringify(side === 1 ? t : b));
   }
 
-  // 3. Резкое переключение верх → низ: в каждый момент звучит не больше одного звука пары
   state.ambience = state.ambience.map(() => 1);
   state.ambience.forEach((_, i) => audio.updateAmbience(i));
   await wait(200);
@@ -91,7 +83,6 @@ export async function runAudioCheck() {
   });
   log('Перекрытие пар при переключении (должно быть 0): ' + JSON.stringify(report.overlap));
 
-  // 4. Всё включено на максимум: выход не превышает 0 дБ
   state.ambience = state.ambience.map((_, i) => (i % 2 ? 1 : -1));
   state.masterVolume = 1;
   state.drums.volume = 1;

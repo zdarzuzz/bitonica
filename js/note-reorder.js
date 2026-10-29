@@ -1,4 +1,4 @@
-// Перемещение только за ручку: ползунок и кнопка ноты работают независимо.
+// Перетаскивание начинается только с ручки, не с ползунка или кнопки ноты.
 export function setupNoteReorder(box, { getOrder, onChange, announce }) {
   let drag = null;
   const rows = () => [...box.querySelectorAll('.note')];

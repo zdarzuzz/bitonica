@@ -1,11 +1,5 @@
-// controls.js — элементы управления: ползунки, крутилки, переключатели.
-// Каждая функция создаёт элемент и возвращает { el, set(value) }.
-// set() меняет только внешний вид (без вызова onInput) — так интерфейс
-// можно обновить после сброса или загрузки ссылки.
-
 const ICONS = 'assets/icons/icons.svg';
 
-// Авторские иконки (PNG в assets/icons/). Для остальных пока временные SVG из icons.svg.
 export const AUTHOR_ICONS = [
   'building', 'tulip', 'play', 'download', 'share', 'reset', 'sun', 'cloud-moon',
   'car', 'car-horn', 'person', 'people', 'metro', 'train', 'hammer', 'gear', 'megaphone', 'siren',
@@ -14,21 +8,18 @@ export const AUTHOR_ICONS = [
 
 export function icon(name, className = 'icon') {
   if (AUTHOR_ICONS.includes(name)) {
-    // Картинка вписывается в квадрат иконки без растягивания (object-fit: contain в CSS)
+
     return `<img class="${className} icon-img" src="assets/icons/${name}.png" alt="" aria-hidden="true" draggable="false">`;
   }
   return `<svg class="${className}" aria-hidden="true" focusable="false"><use href="${ICONS}#i-${name}"/></svg>`;
 }
 
-// Иконка-маска: рисунок PNG сохраняется, а цвет задаёт CSS (нужно там,
-// где иконка меняет цвет в выбранном состоянии — переключатель времени суток).
 export function maskIcon(name, className = 'icon') {
-  // url() во встроенном стиле считается от страницы, поэтому путь относительный к index.html
+
   const url = `url('assets/icons/${name}.png')`;
   return `<span class="${className} icon-mask" style="-webkit-mask-image: ${url}; mask-image: ${url}" aria-hidden="true"></span>`;
 }
 
-/* ---------- Всплывающее значение параметра ---------- */
 const readout = document.getElementById('readout');
 let readoutTimer = null;
 
@@ -42,9 +33,6 @@ export function showReadout(target, text) {
   readoutTimer = setTimeout(() => readout.classList.remove('is-visible'), 1100);
 }
 
-/* ---------- Ползунок ----------
-   Основан на <input type="range">: мышь, касание и клавиатура работают «из коробки».
-   options: { min, max, step, value, label, orientation, length, format, onInput, defaultValue } */
 export function createFader(options) {
   const {
     min = 0, max = 1, step = 0.01, value = 0, label,
@@ -76,7 +64,6 @@ export function createFader(options) {
     showReadout(input, `${label}: ${describe()}`);
   });
 
-  // Двойное нажатие — вернуть значение по умолчанию.
   if (defaultValue !== undefined) {
     input.addEventListener('dblclick', () => {
       input.value = defaultValue;
@@ -90,11 +77,6 @@ export function createFader(options) {
   };
 }
 
-/* ---------- Сингл: трёхпозиционный переключатель ----------
-   Положения: 1 — верхний звук, 0 — оба выключены, -1 — нижний звук.
-   Основан на <input type="range" min=-1 max=1 step=1>: бегунок сам фиксируется
-   в ближайшем положении при перетаскивании, нажатие на верхнюю, центральную
-   или нижнюю часть переводит его туда, стрелки клавиатуры тоже работают. */
 export function createPairToggle({ label, value = 0, describe, onInput }) {
   const wrap = document.createElement('div');
   wrap.className = 'pair__track';
@@ -128,10 +110,6 @@ export function createPairToggle({ label, value = 0, describe, onInput }) {
   return { el: wrap, input, set };
 }
 
-/* ---------- Крутилка ----------
-   Перетаскивание вверх/вправо — больше, вниз/влево — меньше.
-   Колесо мыши, стрелки, PageUp/PageDown, Home/End; двойное нажатие — по умолчанию.
-   Значение всегда 0…1; format превращает его в подпись. */
 export function createKnob({ label, value = 0, defaultValue = 0, big = false, format, onInput, marks = [], hint }) {
   const wrap = document.createElement('div');
   wrap.className = 'knob-wrap';
@@ -167,7 +145,6 @@ export function createKnob({ label, value = 0, defaultValue = 0, big = false, fo
     showReadout(knob, `${label}: ${format(current)}`);
   };
 
-  // Перетаскивание (мышь и касание через Pointer Events)
   let start = null;
   knob.addEventListener('pointerdown', (e) => {
     knob.setPointerCapture(e.pointerId);
@@ -204,10 +181,9 @@ export function createKnob({ label, value = 0, defaultValue = 0, big = false, fo
   return { el: wrap, set };
 }
 
-// Кольцо рисок вокруг крутилки (SVG). Для большой крутилки — длинные метки и иконки.
 function tickRing(big, marks) {
-  const r1 = big ? 104 : 74;     // внутренний радиус рисок (в координатах viewBox)
-  const r2 = big ? 118 : 84;     // внешний
+  const r1 = big ? 104 : 74;
+  const r2 = big ? 118 : 84;
   const view = big ? 125 : 86;
   let lines = '';
   for (let a = -140; a <= 140; a += big ? 2.5 : 3) {
@@ -235,10 +211,6 @@ function line(angle, r1, r2, width) {
   return `<line x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" stroke-width="${width}"/>`;
 }
 
-/* ---------- Сегментированный переключатель (radiogroup) ----------
-   items: [{ value, label, html }] — html содержимое кнопки (иконка или текст). */
-// noneValue: если задано, повторное нажатие на выбранную кнопку снимает выбор
-// (так выключаются барабаны).
 export function createSegmented(container, items, value, onChange, buttonClass = 'segmented__btn', noneValue) {
   const buttons = items.map((item) => {
     const b = document.createElement('button');
@@ -258,7 +230,6 @@ export function createSegmented(container, items, value, onChange, buttonClass =
     return b;
   });
 
-  // Стрелки влево/вправо переключают варианты (как у радиокнопок)
   container.addEventListener('keydown', (e) => {
     const dir = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
     if (!dir) return;
@@ -277,7 +248,7 @@ export function createSegmented(container, items, value, onChange, buttonClass =
       b.setAttribute('aria-checked', String(on));
       b.tabIndex = on ? 0 : -1;
     });
-    // Ничего не выбрано — первая кнопка остаётся доступной с клавиатуры
+
     if (!buttons.some((b) => b.tabIndex === 0)) buttons[0].tabIndex = 0;
   }
   set(value);

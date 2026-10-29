@@ -1,7 +1,3 @@
-// Небольшие проверки чистых функций (без звука и интерфейса).
-// Запуск в терминале:   node tests/state.test.mjs
-// Или в браузере:       tests/tests.html (через локальный сервер)
-
 import {
   createDefaultState, encodeState, decodeState, readHash, sanitizeState,
   pairToGains, toPairPosition, DEFAULT_STATE, FORMAT_VERSION,
@@ -12,7 +8,6 @@ export function runTests() {
   const results = [];
   const check = (name, condition) => results.push({ name, ok: Boolean(condition) });
 
-  /* --- Порядок нот и совместимость ссылок --- */
   const ordered = createDefaultState();
   ordered.voices.city.order = [4, 2, 0, 1, 3, 5, 7, 6];
   ordered.voices.city.notes[4] = { on: true, len: 0.82 };
@@ -31,7 +26,6 @@ export function runTests() {
       sanitizeState(ordered).voices.city.order.join() === '0,1,2,3,4,5,6,7');
   }
 
-  /* --- Синглы: три положения --- */
   check('центр — оба звука выключены', pairToGains(0).top === 0 && pairToGains(0).bottom === 0);
   check('верх — только верхний звук', pairToGains(1).top === 1 && pairToGains(1).bottom === 0);
   check('низ — только нижний звук', pairToGains(-1).bottom === 1 && pairToGains(-1).top === 0);
@@ -46,7 +40,6 @@ export function runTests() {
   check('пара никогда не звучит вместе, громкость не плавная', neverBoth);
   check('мусор вместо числа → центр', pairToGains('abc').side === 0 && pairToGains(NaN).side === 0);
 
-  /* --- Начальное состояние: всё выключено --- */
   check('все ноты выключены', DEFAULT_STATE.voices.city.notes.every((n) => !n.on) && DEFAULT_STATE.voices.nature.notes.every((n) => !n.on));
   check('все синглы в центре', DEFAULT_STATE.ambience.every((v) => v === 0));
   check('барабаны выключены (пресет 0)', DEFAULT_STATE.drums.preset === 0);
@@ -55,7 +48,6 @@ export function runTests() {
   check('пресет 0 не даёт ни одного удара', silentDrums);
   check('эффекты общие, не у голосов', DEFAULT_STATE.fx && !('fx' in DEFAULT_STATE.voices.city));
 
-  /* --- Ссылка: кодирование и восстановление --- */
   const custom = createDefaultState();
   custom.tempo = 131;
   custom.timeOfDay = 'morning';
@@ -101,7 +93,6 @@ export function runTests() {
   fresh.voices.city.notes[0].on = true;
   check('изменение копии не портит DEFAULT_STATE', DEFAULT_STATE.voices.city.notes[0].on === false);
 
-  /* --- Барабанные рисунки --- */
   let patternsOk = true;
   Object.values(DRUM_PRESETS).forEach((preset) => {
     DRUM_INSTRUMENTS.forEach((inst) => {
@@ -128,7 +119,6 @@ function encodeObj(obj) {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-// Запуск из терминала: node tests/state.test.mjs
 if (typeof process !== 'undefined' && process.argv && import.meta.url === `file://${process.argv[1]}`) {
   const results = runTests();
   results.forEach((r) => console.log(`${r.ok ? '✓' : '✗'} ${r.name}`));

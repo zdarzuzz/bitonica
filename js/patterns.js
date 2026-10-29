@@ -1,14 +1,3 @@
-// patterns.js — ритмические рисунки пяти барабанных пресетов.
-//
-// Каждая строка — 16 шагов одного такта (шестнадцатые ноты).
-//   "."   — пауза;
-//   1…5   — удар, который звучит, начиная с этого уровня плотности.
-// Плотность (большая крутилка) превращается в уровень 1…5:
-// на уровне 1 остаётся только основа, на уровне 5 звучат все удары.
-//
-// Инструменты: kick — бочка, snare — малый барабан, clap — клэп,
-// hat — закрытый хэт, open — открытый хэт, click — сухой щелчок.
-
 export const DRUM_PRESETS = {
   1: {
     name: 'Двор',
@@ -59,24 +48,21 @@ export const DRUM_PRESETS = {
 
 export const DRUM_INSTRUMENTS = ['kick', 'snare', 'clap', 'hat', 'open', 'click'];
 
-// Плотность 0…1 → уровень 1…5.
 export function densityToLevel(density) {
   const d = Math.min(1, Math.max(0, Number(density) || 0));
   return 1 + Math.round(d * 4);
 }
 
-// Какие инструменты звучат на шаге step (0…15) при выбранном пресете (0 — выключено) и плотности.
-// Возвращает массив вида [{ instrument: 'kick', velocity: 0.9 }, …].
 export function hitsAtStep(presetNumber, density, step) {
   const preset = DRUM_PRESETS[presetNumber];
-  if (!preset) return []; // пресет 0 — барабаны выключены
+  if (!preset) return [];
   const level = densityToLevel(density);
   const hits = [];
   DRUM_INSTRUMENTS.forEach((instrument) => {
     const symbol = preset[instrument][step % 16];
     const need = Number(symbol);
     if (symbol !== '.' && need <= level) {
-      // Основные удары громче, дополнительные (высокий уровень) — тише.
+
       hits.push({ instrument, velocity: 1 - (need - 1) * 0.13 });
     }
   });
